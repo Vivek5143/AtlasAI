@@ -1,0 +1,1 @@
+# News refresh script placeholder
