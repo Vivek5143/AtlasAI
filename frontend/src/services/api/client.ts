@@ -1,1 +1,1 @@
-// Axios client placeholder
+export { apiClient } from "@/api/client";
