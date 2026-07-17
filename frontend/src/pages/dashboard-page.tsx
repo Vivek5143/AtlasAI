@@ -1,10 +1,28 @@
 import type { ReactElement } from "react";
-import { Building2, Newspaper, RefreshCcw, Shapes, TriangleAlert } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { RefreshCcw } from "lucide-react";
 
+import {
+  ChartSkeletonCard,
+  DatasetCoverageChart,
+  NewsTimelineChart,
+  ProblemsSeverityChart,
+  WidgetEmpty,
+  WidgetError,
+  type ChartDatum,
+} from "@/components/dashboard-charts";
 import { PageContainer } from "@/components/page-container";
-import { useDashboard } from "@/hooks/use-dashboard";
-import { cn } from "@/lib/utils";
+import { companiesQueryKey, useCompanies } from "@/hooks/use-companies";
+import { dashboardQueryKey, useDashboard } from "@/hooks/use-dashboard";
+import { newsQueryKey, useNews } from "@/hooks/use-news";
+import { problemsQueryKey, useProblems } from "@/hooks/use-problems";
+import { sectorsQueryKey, useSectors } from "@/hooks/use-sectors";
+import type { Company } from "@/types/company";
 import type { DashboardMetrics } from "@/types/dashboard";
+import type { NewsArticle } from "@/types/news";
+import type { Problem } from "@/types/problem";
+import type { Sector } from "@/types/sector";
 
 type MetricCardConfig = {
   description: string;
@@ -35,29 +53,6 @@ const primaryMetricCards: MetricCardConfig[] = [
   },
 ];
 
-const secondaryMetricCards: MetricCardConfig[] = [
-  {
-    key: "companies_with_sectors",
-    title: "Companies With Sectors",
-    description: "Companies that already have sector relationships attached.",
-  },
-  {
-    key: "companies_with_news",
-    title: "Companies With News",
-    description: "Companies that currently have at least one news article.",
-  },
-  {
-    key: "sectors_with_companies",
-    title: "Sectors With Companies",
-    description: "Sectors that are already connected to company records.",
-  },
-  {
-    key: "problems_with_severity",
-    title: "Problems With Severity",
-    description: "Problem records that already include severity metadata.",
-  },
-];
-
 function MetricCard({
   description,
   title,
@@ -69,9 +64,7 @@ function MetricCard({
 }): ReactElement {
   return (
     <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-        {title}
-      </p>
+      <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
       <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">
         {value.toLocaleString()}
       </p>
@@ -93,196 +86,433 @@ function LoadingSkeletonCard(): ReactElement {
   );
 }
 
-function StatusCard({
-  action,
-  actionLabel,
+function SmallStatCard({
   description,
   title,
-  tone = "default",
+  value,
 }: {
-  action?: () => void;
-  actionLabel?: string;
   description: string;
   title: string;
-  tone?: "default" | "error";
+  value: string;
 }): ReactElement {
   return (
-    <section
-      className={cn(
-        "rounded-3xl border p-6 shadow-sm",
-        tone === "error"
-          ? "border-red-200 bg-red-50 dark:border-red-900/60 dark:bg-red-950/30"
-          : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900",
-      )}
-    >
-      <h2
-        className={cn(
-          "text-lg font-medium",
-          tone === "error"
-            ? "text-red-700 dark:text-red-300"
-            : "text-slate-950 dark:text-white",
-        )}
-      >
+    <article className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
         {title}
-      </h2>
-      <p
-        className={cn(
-          "mt-2 max-w-2xl text-sm leading-6",
-          tone === "error"
-            ? "text-red-600 dark:text-red-200/80"
-            : "text-slate-500 dark:text-slate-400",
-        )}
-      >
-        {description}
       </p>
-      {action && actionLabel ? (
-        <button
-          type="button"
-          onClick={action}
-          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
-        >
-          <RefreshCcw className="h-4 w-4" aria-hidden="true" />
-          {actionLabel}
-        </button>
-      ) : null}
-    </section>
+      <p className="mt-2 text-2xl font-semibold text-slate-950 dark:text-white">{value}</p>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{description}</p>
+    </article>
   );
 }
 
-function SummaryStrip({
-  dashboard,
-}: {
-  dashboard: DashboardMetrics;
-}): ReactElement {
-  const summaryItems = [
-    {
-      icon: Building2,
-      label: "Companies with sector coverage",
-      value: dashboard.companies_with_sectors,
-    },
-    {
-      icon: Newspaper,
-      label: "Companies with news coverage",
-      value: dashboard.companies_with_news,
-    },
-    {
-      icon: Shapes,
-      label: "Sectors linked to companies",
-      value: dashboard.sectors_with_companies,
-    },
-    {
-      icon: TriangleAlert,
-      label: "Problems categorized by severity",
-      value: dashboard.problems_with_severity,
-    },
-  ];
-
+function ActivityListSkeleton(): ReactElement {
   return (
-    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-      {summaryItems.map((item) => (
+    <div className="space-y-2 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      {Array.from({ length: 5 }).map((_, idx) => (
         <div
-          key={item.label}
-          className="flex items-start gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
-        >
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-            <item.icon className="h-4 w-4" aria-hidden="true" />
-          </span>
-          <div>
-            <p className="text-sm font-medium text-slate-950 dark:text-white">
-              {item.value.toLocaleString()}
-            </p>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              {item.label}
-            </p>
-          </div>
-        </div>
+          key={idx}
+          className="h-10 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-800"
+        />
       ))}
-    </section>
+    </div>
   );
+}
+
+function ActivityListCard({
+  items,
+  title,
+}: {
+  items: string[];
+  title: string;
+}): ReactElement {
+  return (
+    <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <h3 className="text-base font-semibold text-slate-950 dark:text-white">{title}</h3>
+      {items.length ? (
+        <ul className="mt-3 space-y-2">
+          {items.map((item) => (
+            <li
+              key={item}
+              className="rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-200"
+            >
+              {item}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="mt-3">
+          <WidgetEmpty title="No items" message="No records available for this widget." />
+        </div>
+      )}
+    </article>
+  );
+}
+
+function sortLatest<T>(
+  items: T[],
+  dateSelector: (item: T) => string,
+  textSelector: (item: T) => string,
+): string[] {
+  return [...items]
+    .sort(
+      (a, b) =>
+        new Date(dateSelector(b)).getTime() - new Date(dateSelector(a)).getTime(),
+    )
+    .slice(0, 5)
+    .map((item) => textSelector(item));
 }
 
 export function DashboardPage(): ReactElement {
-  const { dashboard, isError, isLoading, refetch } = useDashboard();
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const dashboardQuery = useDashboard();
+  const companiesQuery = useCompanies();
+  const problemsQuery = useProblems();
+  const newsQuery = useNews();
+  const sectorsQuery = useSectors();
+
+  const coverageData = useMemo<ChartDatum[]>(() => {
+    const dashboard = dashboardQuery.dashboard;
+    if (!dashboard) {
+      return [];
+    }
+
+    const values: ChartDatum[] = [];
+    if (dashboard.total_companies > 0) {
+      values.push({
+        label: "Companies w/ Sectors",
+        value: Math.round(
+          (dashboard.companies_with_sectors / dashboard.total_companies) * 100,
+        ),
+      });
+      values.push({
+        label: "Companies w/ News",
+        value: Math.round(
+          (dashboard.companies_with_news / dashboard.total_companies) * 100,
+        ),
+      });
+    }
+    if (dashboard.total_problems > 0) {
+      values.push({
+        label: "Problems Categorized",
+        value: Math.round(
+          (dashboard.problems_with_category / dashboard.total_problems) * 100,
+        ),
+      });
+      values.push({
+        label: "Problems w/ Severity",
+        value: Math.round(
+          (dashboard.problems_with_severity / dashboard.total_problems) * 100,
+        ),
+      });
+    }
+
+    return values.filter((entry) => Number.isFinite(entry.value));
+  }, [dashboardQuery.dashboard]);
+
+  const problemsSeverityData = useMemo<ChartDatum[]>(() => {
+    const counts = new Map<string, number>();
+    for (const problem of problemsQuery.problems) {
+      const key = problem.severity?.trim() || "Unspecified";
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return [...counts.entries()].map(([label, value]) => ({ label, value }));
+  }, [problemsQuery.problems]);
+
+  const newsTimelineData = useMemo<ChartDatum[]>(() => {
+    const counts = new Map<string, number>();
+    for (const article of newsQuery.articles) {
+      const date = new Date(article.published_at);
+      if (Number.isNaN(date.getTime())) {
+        continue;
+      }
+      const label = date.toISOString().slice(0, 10);
+      counts.set(label, (counts.get(label) ?? 0) + 1);
+    }
+
+    return [...counts.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-12)
+      .map(([label, value]) => ({ label, value }));
+  }, [newsQuery.articles]);
+
+  const quickStats = useMemo(() => {
+    const totalCompanies = companiesQuery.totalCompanies;
+    const totalProblems = problemsQuery.totalProblems;
+    const dashboard = dashboardQuery.dashboard;
+
+    const averageProblemsPerCompany =
+      totalCompanies > 0 ? (totalProblems / totalCompanies).toFixed(2) : "—";
+
+    const companiesWithNews = dashboard
+      ? `${dashboard.companies_with_news.toLocaleString()}`
+      : "—";
+
+    const coveragePercent = dashboard
+      ? (() => {
+          const numerator =
+            dashboard.companies_with_sectors +
+            dashboard.companies_with_news +
+            dashboard.problems_with_category +
+            dashboard.problems_with_severity;
+          const denominator =
+            dashboard.total_companies * 2 + dashboard.total_problems * 2;
+
+          if (denominator <= 0) {
+            return "—";
+          }
+
+          return `${Math.round((numerator / denominator) * 100)}%`;
+        })()
+      : "—";
+
+    return {
+      averageProblemsPerCompany,
+      companiesWithNews,
+      coveragePercent,
+    };
+  }, [
+    companiesQuery.totalCompanies,
+    dashboardQuery.dashboard,
+    problemsQuery.totalProblems,
+  ]);
+
+  const latestCompanies = useMemo(
+    () =>
+      sortLatest<Company>(
+        companiesQuery.companies,
+        (company) => company.created_at,
+        (company) => company.vendor_name,
+      ),
+    [companiesQuery.companies],
+  );
+
+  const latestNews = useMemo(
+    () =>
+      sortLatest<NewsArticle>(
+        newsQuery.articles,
+        (article) => article.published_at,
+        (article) => article.title,
+      ),
+    [newsQuery.articles],
+  );
+
+  const latestProblems = useMemo(
+    () =>
+      sortLatest<Problem>(
+        problemsQuery.problems,
+        (problem) => problem.created_at,
+        (problem) => problem.name,
+      ),
+    [problemsQuery.problems],
+  );
+
+  const handleRefreshDashboard = async (): Promise<void> => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: dashboardQueryKey }),
+        queryClient.invalidateQueries({ queryKey: companiesQueryKey }),
+        queryClient.invalidateQueries({ queryKey: problemsQueryKey }),
+        queryClient.invalidateQueries({ queryKey: sectorsQueryKey }),
+        queryClient.invalidateQueries({ queryKey: newsQueryKey }),
+      ]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const anyQuickStatsLoading =
+    dashboardQuery.isLoading || companiesQuery.isLoading || problemsQuery.isLoading;
+  const anyActivityLoading =
+    companiesQuery.isLoading || newsQuery.isLoading || problemsQuery.isLoading;
+  const anyChartLoading =
+    dashboardQuery.isLoading || problemsQuery.isLoading || newsQuery.isLoading;
 
   return (
     <PageContainer
       title="Dashboard"
-      subtitle="A live overview of the AtlasAI backend metrics exposed through the dashboard API."
+      subtitle="A live analytics overview powered by AtlasAI backend datasets."
     >
-      {isLoading ? (
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => {
+            void handleRefreshDashboard();
+          }}
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+        >
+          <RefreshCcw
+            className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+            aria-hidden="true"
+          />
+          Refresh Dashboard
+        </button>
+      </div>
+
+      {dashboardQuery.isLoading ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, index) => (
             <LoadingSkeletonCard key={index} />
           ))}
         </div>
-      ) : null}
-
-      {!isLoading && isError ? (
-        <StatusCard
-          action={() => {
-            void refetch();
-          }}
-          actionLabel="Retry"
-          description="We could not load dashboard metrics from the backend right now. Please try again."
-          title="Dashboard unavailable"
-          tone="error"
+      ) : dashboardQuery.isError || !dashboardQuery.dashboard ? (
+        <WidgetError
+          title="KPI metrics unavailable"
+          message="Dashboard KPI metrics could not be loaded right now."
         />
-      ) : null}
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {primaryMetricCards.map((card) => (
+            <MetricCard
+              key={card.key}
+              description={card.description}
+              title={card.title}
+              value={dashboardQuery.dashboard![card.key] as number}
+            />
+          ))}
+        </div>
+      )}
 
-      {!isLoading && !isError && !dashboard ? (
-        <StatusCard
-          description="The dashboard endpoint responded successfully, but there are no metrics available to display yet."
-          title="No dashboard data"
-        />
-      ) : null}
-
-      {!isLoading && !isError && dashboard ? (
-        <div className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {primaryMetricCards.map((card) => (
-              <MetricCard
-                key={card.key}
-                description={card.description}
-                title={card.title}
-                value={dashboard[card.key] as number}
-              />
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold text-slate-950 dark:text-white">Quick Stats</h2>
+        {anyQuickStatsLoading ? (
+          <div className="grid gap-4 md:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <LoadingSkeletonCard key={index} />
             ))}
           </div>
+        ) : dashboardQuery.isError && companiesQuery.isError && problemsQuery.isError ? (
+          <WidgetError
+            title="Quick stats unavailable"
+            message="Required datasets failed to load."
+          />
+        ) : (
+          <div className="grid gap-4 md:grid-cols-3">
+            <SmallStatCard
+              title="Avg. Problems / Company"
+              value={quickStats.averageProblemsPerCompany}
+              description="Total problems divided by total companies."
+            />
+            <SmallStatCard
+              title="Companies with News"
+              value={quickStats.companiesWithNews}
+              description="Company records currently linked to news articles."
+            />
+            <SmallStatCard
+              title="Coverage"
+              value={quickStats.coveragePercent}
+              description="Derived enrichment coverage across companies and problems."
+            />
+          </div>
+        )}
+      </section>
 
-          <SummaryStrip dashboard={dashboard} />
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold text-slate-950 dark:text-white">Analytics</h2>
+        {anyChartLoading ? (
+          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+            <ChartSkeletonCard />
+            <ChartSkeletonCard />
+            <ChartSkeletonCard />
+          </div>
+        ) : (
+          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+            {problemsQuery.isError ? (
+              <WidgetError
+                title="Problems chart unavailable"
+                message="Problem data failed to load."
+              />
+            ) : (
+              <ProblemsSeverityChart data={problemsSeverityData} />
+            )}
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-              <div className="max-w-2xl">
-                <h2 className="text-lg font-medium text-slate-950 dark:text-white">
-                  Coverage snapshot
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                  These supporting counts show how much of the AtlasAI dataset is
-                  already enriched with relationships and metadata.
-                </p>
-              </div>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Generated at{" "}
-                <span className="font-medium text-slate-700 dark:text-slate-200">
-                  {new Date(dashboard.generated_at).toLocaleString()}
+            {newsQuery.isError ? (
+              <WidgetError title="News chart unavailable" message="News data failed to load." />
+            ) : (
+              <NewsTimelineChart data={newsTimelineData} />
+            )}
+
+            {dashboardQuery.isError ? (
+              <WidgetError
+                title="Coverage chart unavailable"
+                message="Dashboard metrics failed to load."
+              />
+            ) : (
+              <DatasetCoverageChart data={coverageData} />
+            )}
+          </div>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold text-slate-950 dark:text-white">Recent Activity</h2>
+        {anyActivityLoading ? (
+          <div className="grid gap-4 lg:grid-cols-3">
+            <ActivityListSkeleton />
+            <ActivityListSkeleton />
+            <ActivityListSkeleton />
+          </div>
+        ) : (
+          <div className="grid gap-4 lg:grid-cols-3">
+            {companiesQuery.isError ? (
+              <WidgetError
+                title="Latest companies unavailable"
+                message="Company data failed to load."
+              />
+            ) : (
+              <ActivityListCard title="Latest Companies" items={latestCompanies} />
+            )}
+
+            {newsQuery.isError ? (
+              <WidgetError title="Latest news unavailable" message="News data failed to load." />
+            ) : (
+              <ActivityListCard title="Latest News" items={latestNews} />
+            )}
+
+            {problemsQuery.isError ? (
+              <WidgetError
+                title="Newest problems unavailable"
+                message="Problem data failed to load."
+              />
+            ) : (
+              <ActivityListCard title="Newest Problems" items={latestProblems} />
+            )}
+          </div>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold text-slate-950 dark:text-white">Dataset Snapshot</h2>
+        {sectorsQuery.isLoading ? (
+          <LoadingSkeletonCard />
+        ) : sectorsQuery.isError ? (
+          <WidgetError title="Snapshot unavailable" message="Sector data failed to load." />
+        ) : sectorsQuery.sectors.length ? (
+          <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Top sectors in current dataset
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {sectorsQuery.sectors.slice(0, 10).map((sector: Sector) => (
+                <span
+                  key={sector.id}
+                  className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                >
+                  {sector.name}
                 </span>
-              </p>
-            </div>
-
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {secondaryMetricCards.map((card) => (
-                <MetricCard
-                  key={card.key}
-                  description={card.description}
-                  title={card.title}
-                  value={dashboard[card.key] as number}
-                />
               ))}
             </div>
-          </section>
-        </div>
-      ) : null}
+          </article>
+        ) : (
+          <WidgetEmpty
+            title="No sectors available"
+            message="Sector distribution cannot be rendered without sector data."
+          />
+        )}
+      </section>
     </PageContainer>
   );
 }
