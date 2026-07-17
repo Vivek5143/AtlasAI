@@ -515,4 +515,49 @@ class NewsService:
                 exc,
             )
 
-            return []            
+            return []
+
+    def get_recent_news(self, limit: int = 50) -> list[NewsArticle]:
+        """Return the most recent persisted news articles.
+
+        Args:
+            limit: Maximum number of articles to return.
+
+        Returns:
+            list[NewsArticle]: Persisted articles ordered by publish date.
+        """
+
+        self.logger.debug("Fetching up to %s recent news articles.", limit)
+        return self.repository.get_recent_articles(limit=limit)
+
+    def get_company_news(self, company_id, limit: int = 50) -> list[NewsArticle]:
+        """Return persisted news articles for a specific company.
+
+        Args:
+            company_id: Company identifier.
+            limit: Maximum number of articles to return.
+
+        Returns:
+            list[NewsArticle]: Persisted company-specific news articles.
+        """
+
+        self.logger.debug(
+            "Fetching up to %s news articles for company %s.",
+            limit,
+            company_id,
+        )
+        return self.repository.get_company_articles(company_id=company_id)[:limit]
+
+    def news_statistics(self) -> dict[str, int]:
+        """Return aggregate metrics for persisted news articles.
+
+        Returns:
+            dict[str, int]: Dashboard-friendly news statistics.
+        """
+
+        total_news_articles = self.session.execute(
+            select(func.count()).select_from(NewsArticle)
+        ).scalar_one()
+        return {
+            "total_news_articles": int(total_news_articles),
+        }

@@ -1,0 +1,46 @@
+"""FastAPI dependency providers for v1 endpoints."""
+
+from __future__ import annotations
+
+from fastapi import Depends
+from sqlalchemy.orm import Session
+
+
+from app.database.session import get_db
+from app.repositories.news_repository import NewsRepository
+from app.repositories.company_repository import CompanyRepository
+from app.repositories.sector_repository import SectorRepository
+from app.repositories.problem_repository import ProblemRepository
+from app.services.company_service import CompanyService
+from app.services.sector_service import SectorService
+from app.services.problem_service import ProblemService
+from app.services.news_service import NewsService
+
+
+def get_company_service(db: Session = Depends(get_db)) -> CompanyService:
+    """Provide a CompanyService backed by the request-scoped DB session."""
+
+    return CompanyService(CompanyRepository(db))
+
+
+
+def get_sector_service(db: Session = Depends(get_db)) -> SectorService:
+
+    """Provide a SectorService backed by the request-scoped DB session."""
+
+    return SectorService(SectorRepository(db))
+
+
+def get_problem_service(db: Session = Depends(get_db)) -> ProblemService:
+
+    """Provide a ProblemService backed by the request-scoped DB session."""
+
+    return ProblemService(ProblemRepository(db))
+
+
+def get_news_service(db: Session = Depends(get_db)) -> NewsService:
+
+    """Provide a NewsService backed by the request-scoped DB session."""
+
+    return NewsService(session=db, repository=NewsRepository(db))
+

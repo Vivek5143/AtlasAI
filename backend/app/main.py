@@ -7,6 +7,8 @@ AI-specific integrations will be added in later steps.
 
 from fastapi import FastAPI
 
+from app.api.router import api_router
+
 
 def create_application() -> FastAPI:
     """Create and configure the FastAPI application instance."""
@@ -20,6 +22,8 @@ def create_application() -> FastAPI:
     async def read_root() -> dict[str, str]:
         """Return a simple confirmation that the backend is running."""
         return {"message": "InsightForge AI Backend Running Successfully 🚀"}
+
+    app.include_router(api_router)
 
     return app
 
