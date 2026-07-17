@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactElement } from "react";
 import { Filter, Link2, RefreshCcw, Search, X } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
 import { PageContainer } from "@/components/page-container";
 import { useNews } from "@/hooks/use-news";
@@ -149,7 +150,22 @@ export function NewsPage(): ReactElement {
     setSearchTerm,
     totalNews,
   } = useNews();
+  const [searchParams] = useSearchParams();
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
+  const [consumedSelectedArticleId, setConsumedSelectedArticleId] = useState<string | null>(
+    null,
+  );
+
+  const routedSearchTerm = searchParams.get("search") ?? "";
+  const routedSelectedArticleId = searchParams.get("selected");
+
+  useEffect(() => {
+    setSearchTerm(routedSearchTerm);
+  }, [routedSearchTerm, setSearchTerm]);
+
+  useEffect(() => {
+    setConsumedSelectedArticleId(null);
+  }, [routedSelectedArticleId]);
 
   const articleCards = useMemo(
     () =>
@@ -220,6 +236,22 @@ export function NewsPage(): ReactElement {
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
   }, [selectedArticle]);
+
+  useEffect(() => {
+    if (!routedSelectedArticleId || consumedSelectedArticleId === routedSelectedArticleId) {
+      return;
+    }
+
+    const matchingArticle =
+      articles.find((article) => article.id === routedSelectedArticleId) ?? null;
+
+    if (!matchingArticle) {
+      return;
+    }
+
+    setSelectedArticle(matchingArticle);
+    setConsumedSelectedArticleId(routedSelectedArticleId);
+  }, [articles, consumedSelectedArticleId, routedSelectedArticleId]);
 
   return (
     <PageContainer

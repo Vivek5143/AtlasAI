@@ -2,6 +2,8 @@ import type { ReactElement } from "react";
 import { createBrowserRouter, Outlet } from "react-router-dom";
 
 import { AppLayout } from "@/layouts/app-layout";
+import { AskAtlasAI } from "@/pages/AskAtlasAI";
+import { CompanyDetailPage } from "@/pages/company-detail-page";
 import { CompaniesPage } from "@/pages/companies-page";
 import { DashboardPage } from "@/pages/dashboard-page";
 import { NewsPage } from "@/pages/news-page";
@@ -30,6 +32,10 @@ export const router = createBrowserRouter([
         element: <CompaniesPage />,
       },
       {
+        path: "companies/:companyId",
+        element: <CompanyDetailPage />,
+      },
+      {
         path: "problems",
         element: <ProblemsPage />,
       },
@@ -40,6 +46,10 @@ export const router = createBrowserRouter([
       {
         path: "news",
         element: <NewsPage />,
+      },
+      {
+        path: "ask",
+        element: <AskAtlasAI />,
       },
     ],
   },

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -11,6 +12,11 @@ from sqlalchemy.types import Uuid
 
 from app.database.base import Base
 from app.utils.datetime import utc_now
+
+if TYPE_CHECKING:
+    from app.models.news_article import NewsArticle
+    from app.models.problem import Problem
+    from app.models.sector import Sector
 
 
 class Company(Base):
@@ -106,6 +112,34 @@ class Company(Base):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
+
+    @property
+    def sectors(self) -> list["Sector"]:
+        """Return normalized sectors linked to the company."""
+
+        return sorted(
+            [company_sector.sector for company_sector in self.company_sectors if company_sector.sector],
+            key=lambda sector: sector.name.lower(),
+        )
+
+    @property
+    def problems(self) -> list["Problem"]:
+        """Return related problems linked through mapping rows."""
+
+        return sorted(
+            [mapping.problem for mapping in self.problem_mappings if mapping.problem],
+            key=lambda problem: problem.name.lower(),
+        )
+
+    @property
+    def news(self) -> list["NewsArticle"]:
+        """Return related news articles ordered newest first."""
+
+        return sorted(
+            self.news_articles,
+            key=lambda article: article.published_at,
+            reverse=True,
+        )
 
 
 from app.models.company_sector import CompanySector  # noqa: E402,F401

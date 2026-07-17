@@ -1,6 +1,7 @@
-import { Bell, Menu, Search } from "lucide-react";
+import { Bell, Menu } from "lucide-react";
 import type { ReactElement } from "react";
 
+import { GlobalSearch } from "@/components/global-search";
 import type { Theme } from "@/hooks/use-theme";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -38,15 +39,7 @@ export function Navbar({
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
-        <label className="relative hidden md:block">
-          <span className="sr-only">Search the application shell</span>
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
-            type="search"
-            placeholder="Search"
-            className="h-10 w-56 rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:placeholder:text-slate-500"
-          />
-        </label>
+        <GlobalSearch />
 
         <ThemeToggle onToggle={onToggleTheme} theme={theme} />
 

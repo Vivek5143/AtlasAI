@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
 import { Filter, RefreshCcw, Search, X } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
 import { PageContainer } from "@/components/page-container";
 import { useProblems } from "@/hooks/use-problems";
@@ -130,7 +131,22 @@ export function ProblemsPage(): ReactElement {
     setSearchTerm,
     totalProblems,
   } = useProblems();
+  const [searchParams] = useSearchParams();
   const [selectedProblem, setSelectedProblem] = useState<Problem | null>(null);
+  const [consumedSelectedProblemId, setConsumedSelectedProblemId] = useState<string | null>(
+    null,
+  );
+
+  const routedSearchTerm = searchParams.get("search") ?? "";
+  const routedSelectedProblemId = searchParams.get("selected");
+
+  useEffect(() => {
+    setSearchTerm(routedSearchTerm);
+  }, [routedSearchTerm, setSearchTerm]);
+
+  useEffect(() => {
+    setConsumedSelectedProblemId(null);
+  }, [routedSelectedProblemId]);
 
   useEffect(() => {
     if (!selectedProblem) {
@@ -146,6 +162,22 @@ export function ProblemsPage(): ReactElement {
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
   }, [selectedProblem]);
+
+  useEffect(() => {
+    if (!routedSelectedProblemId || consumedSelectedProblemId === routedSelectedProblemId) {
+      return;
+    }
+
+    const matchingProblem =
+      problems.find((problem) => problem.id === routedSelectedProblemId) ?? null;
+
+    if (!matchingProblem) {
+      return;
+    }
+
+    setSelectedProblem(matchingProblem);
+    setConsumedSelectedProblemId(routedSelectedProblemId);
+  }, [consumedSelectedProblemId, problems, routedSelectedProblemId]);
 
   return (
     <PageContainer

@@ -1,4 +1,5 @@
 import {
+  Bot,
   Building2,
   LayoutDashboard,
   Newspaper,
@@ -21,6 +22,7 @@ type SidebarProps = {
 
 const primaryNavigation = [
   { label: "Dashboard", to: "/", icon: LayoutDashboard, end: true },
+  { label: "Ask AtlasAI", to: "/ask", icon: Bot },
   { label: "Companies", to: "/companies", icon: Building2 },
   { label: "Problems", to: "/problems", icon: TriangleAlert },
   { label: "Sectors", to: "/sectors", icon: Shapes },

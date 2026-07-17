@@ -26,9 +26,8 @@ class SectorRepository:
         self.session = session
 
     def _hydrate_company(self, company: Company) -> Company:
-        """Attach compatibility aliases and return a company."""
+        """Return a company hydrated through eager-loaded relationships."""
 
-        company.sectors = company.company_sectors
         return company
 
     def _sector_query(self):

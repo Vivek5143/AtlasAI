@@ -10,7 +10,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.v1.dependencies import get_company_service
-from app.schemas.company import CompanyListResponse, CompanyResponse
+from app.schemas.company import CompanyDetailResponse, CompanyListResponse, CompanyResponse
 
 
 
@@ -38,11 +38,11 @@ async def search_companies(
     return CompanyListResponse(items=companies, total=len(companies))
 
 
-@router.get("/{company_id}", response_model=CompanyResponse)
+@router.get("/{company_id}", response_model=CompanyDetailResponse)
 async def get_company(
     company_id: UUID,
     company_service=Depends(get_company_service),
-) -> CompanyResponse:
+) -> CompanyDetailResponse:
     """Fetch a company by id."""
 
     company = company_service.get_company(company_id)

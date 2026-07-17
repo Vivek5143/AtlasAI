@@ -1,6 +1,7 @@
 export interface Problem {
   external_problem_id: string | null;
   category: string | null;
+  industry?: string | null;
   name: string;
   problem_type: string | null;
   vc_stage: string | null;

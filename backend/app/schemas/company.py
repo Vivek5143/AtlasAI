@@ -8,6 +8,10 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.news import NewsResponse
+from app.schemas.problem import ProblemResponse
+from app.schemas.sector import SectorResponse
+
 
 class _SchemaModel(BaseModel):
 	"""Shared Pydantic configuration for schema models."""
@@ -65,6 +69,14 @@ class CompanyResponse(CompanyBase):
 	id: UUID
 	created_at: datetime
 	updated_at: datetime
+
+
+class CompanyDetailResponse(CompanyResponse):
+	"""Schema returned for a single company with related records."""
+
+	problems: list[ProblemResponse] = Field(default_factory=list)
+	sectors: list[SectorResponse] = Field(default_factory=list)
+	news: list[NewsResponse] = Field(default_factory=list)
 
 
 class CompanyListResponse(_SchemaModel):

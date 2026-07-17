@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
 import { Filter, RefreshCcw, Search, X } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
 import { PageContainer } from "@/components/page-container";
 import { useSectors } from "@/hooks/use-sectors";
@@ -119,7 +120,22 @@ export function SectorsPage(): ReactElement {
     setSearchTerm,
     totalSectors,
   } = useSectors();
+  const [searchParams] = useSearchParams();
   const [selectedSector, setSelectedSector] = useState<Sector | null>(null);
+  const [consumedSelectedSectorId, setConsumedSelectedSectorId] = useState<string | null>(
+    null,
+  );
+
+  const routedSearchTerm = searchParams.get("search") ?? "";
+  const routedSelectedSectorId = searchParams.get("selected");
+
+  useEffect(() => {
+    setSearchTerm(routedSearchTerm);
+  }, [routedSearchTerm, setSearchTerm]);
+
+  useEffect(() => {
+    setConsumedSelectedSectorId(null);
+  }, [routedSelectedSectorId]);
 
   useEffect(() => {
     if (!selectedSector) {
@@ -135,6 +151,22 @@ export function SectorsPage(): ReactElement {
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
   }, [selectedSector]);
+
+  useEffect(() => {
+    if (!routedSelectedSectorId || consumedSelectedSectorId === routedSelectedSectorId) {
+      return;
+    }
+
+    const matchingSector =
+      sectors.find((sector) => sector.id === routedSelectedSectorId) ?? null;
+
+    if (!matchingSector) {
+      return;
+    }
+
+    setSelectedSector(matchingSector);
+    setConsumedSelectedSectorId(routedSelectedSectorId);
+  }, [consumedSelectedSectorId, routedSelectedSectorId, sectors]);
 
   return (
     <PageContainer

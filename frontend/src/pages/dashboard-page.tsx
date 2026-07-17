@@ -1,78 +1,117 @@
 import type { ReactElement } from "react";
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { RefreshCcw } from "lucide-react";
+import {
+  BadgeAlert,
+  Building2,
+  Layers3,
+  Newspaper,
+  RefreshCcw,
+} from "lucide-react";
 
 import {
   ChartSkeletonCard,
-  DatasetCoverageChart,
-  NewsTimelineChart,
-  ProblemsSeverityChart,
-  WidgetEmpty,
+  CompaniesByAICategoryChart,
+  CompaniesByCountryChart,
+  LatestNewsTimelineChart,
+  ProblemsByIndustryChart,
   WidgetError,
+  WidgetEmpty,
   type ChartDatum,
 } from "@/components/dashboard-charts";
 import { PageContainer } from "@/components/page-container";
 import { companiesQueryKey, useCompanies } from "@/hooks/use-companies";
-import { dashboardQueryKey, useDashboard } from "@/hooks/use-dashboard";
 import { newsQueryKey, useNews } from "@/hooks/use-news";
 import { problemsQueryKey, useProblems } from "@/hooks/use-problems";
 import { sectorsQueryKey, useSectors } from "@/hooks/use-sectors";
 import type { Company } from "@/types/company";
-import type { DashboardMetrics } from "@/types/dashboard";
 import type { NewsArticle } from "@/types/news";
 import type { Problem } from "@/types/problem";
 import type { Sector } from "@/types/sector";
 
-type MetricCardConfig = {
+type MetricCardProps = {
   description: string;
-  key: keyof DashboardMetrics;
-  title: string;
-};
-
-const primaryMetricCards: MetricCardConfig[] = [
-  {
-    key: "total_companies",
-    title: "Companies",
-    description: "Total companies currently stored in AtlasAI.",
-  },
-  {
-    key: "total_problems",
-    title: "Problems",
-    description: "Problem definitions available for mapping and analysis.",
-  },
-  {
-    key: "total_sectors",
-    title: "Sectors",
-    description: "Sector records ready for grouping and categorization.",
-  },
-  {
-    key: "total_news_articles",
-    title: "News",
-    description: "Persisted news articles associated with tracked companies.",
-  },
-];
-
-function MetricCard({
-  description,
-  title,
-  value,
-}: {
-  description: string;
+  icon: ReactElement;
+  isLoading: boolean;
   title: string;
   value: number;
-}): ReactElement {
-  return (
-    <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
-      <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">
-        {value.toLocaleString()}
-      </p>
-      <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-        {description}
-      </p>
-    </article>
+};
+
+type SmallStatCardProps = {
+  description: string;
+  title: string;
+  value: string;
+};
+
+function normalizeLabel(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function aggregateByLabel<T>(
+  items: T[],
+  selector: (item: T) => string | null | undefined,
+  options?: {
+    emptyLabel?: string;
+    includeEmpty?: boolean;
+    limit?: number;
+  },
+): ChartDatum[] {
+  const counts = new Map<string, number>();
+  const emptyLabel = options?.emptyLabel ?? "Unspecified";
+  const includeEmpty = options?.includeEmpty ?? true;
+  const limit = options?.limit;
+
+  for (const item of items) {
+    const label = normalizeLabel(selector(item));
+    if (!label && !includeEmpty) {
+      continue;
+    }
+
+    const resolvedLabel = label ?? emptyLabel;
+    counts.set(resolvedLabel, (counts.get(resolvedLabel) ?? 0) + 1);
+  }
+
+  const sorted = [...counts.entries()].sort(
+    ([labelA, valueA], [labelB, valueB]) => valueB - valueA || labelA.localeCompare(labelB),
   );
+
+  if (!limit || sorted.length <= limit) {
+    return sorted.map(([label, value]) => ({ label, value }));
+  }
+
+  const visible = sorted.slice(0, limit);
+  const remainingTotal = sorted.slice(limit).reduce((total, [, value]) => total + value, 0);
+
+  return remainingTotal > 0
+    ? [...visible.map(([label, value]) => ({ label, value })), { label: "Other", value: remainingTotal }]
+    : visible.map(([label, value]) => ({ label, value }));
+}
+
+function sortLatest<T>(
+  items: T[],
+  dateSelector: (item: T) => string,
+  textSelector: (item: T) => string,
+): string[] {
+  return [...items]
+    .sort(
+      (a, b) =>
+        new Date(dateSelector(b)).getTime() - new Date(dateSelector(a)).getTime(),
+    )
+    .slice(0, 5)
+    .map((item) => textSelector(item));
+}
+
+function formatTimelineLabel(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+  }).format(date);
 }
 
 function LoadingSkeletonCard(): ReactElement {
@@ -86,15 +125,40 @@ function LoadingSkeletonCard(): ReactElement {
   );
 }
 
+function MetricCard({
+  description,
+  icon,
+  isLoading,
+  title,
+  value,
+}: MetricCardProps): ReactElement {
+  if (isLoading) {
+    return <LoadingSkeletonCard />;
+  }
+
+  return (
+    <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
+          <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">
+            {value.toLocaleString()}
+          </p>
+        </div>
+        <div className="rounded-2xl bg-slate-100 p-3 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+          {icon}
+        </div>
+      </div>
+      <p className="mt-4 text-sm leading-6 text-slate-500 dark:text-slate-400">{description}</p>
+    </article>
+  );
+}
+
 function SmallStatCard({
   description,
   title,
   value,
-}: {
-  description: string;
-  title: string;
-  value: string;
-}): ReactElement {
+}: SmallStatCardProps): ReactElement {
   return (
     <article className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -149,134 +213,143 @@ function ActivityListCard({
   );
 }
 
-function sortLatest<T>(
-  items: T[],
-  dateSelector: (item: T) => string,
-  textSelector: (item: T) => string,
-): string[] {
-  return [...items]
-    .sort(
-      (a, b) =>
-        new Date(dateSelector(b)).getTime() - new Date(dateSelector(a)).getTime(),
-    )
-    .slice(0, 5)
-    .map((item) => textSelector(item));
-}
-
 export function DashboardPage(): ReactElement {
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const dashboardQuery = useDashboard();
   const companiesQuery = useCompanies();
   const problemsQuery = useProblems();
   const newsQuery = useNews();
   const sectorsQuery = useSectors();
 
-  const coverageData = useMemo<ChartDatum[]>(() => {
-    const dashboard = dashboardQuery.dashboard;
-    if (!dashboard) {
-      return [];
-    }
+  const metricCards = useMemo(
+    () => [
+      {
+        title: "Total Companies",
+        value: companiesQuery.totalCompanies,
+        isLoading: companiesQuery.isLoading,
+        description: "Tracked companies currently available in AtlasAI.",
+        icon: <Building2 className="h-5 w-5" aria-hidden="true" />,
+      },
+      {
+        title: "Total Problems",
+        value: problemsQuery.totalProblems,
+        isLoading: problemsQuery.isLoading,
+        description: "Problem records ready for analysis and mapping.",
+        icon: <BadgeAlert className="h-5 w-5" aria-hidden="true" />,
+      },
+      {
+        title: "Total News",
+        value: newsQuery.totalNews,
+        isLoading: newsQuery.isLoading,
+        description: "Persisted news articles connected to tracked companies.",
+        icon: <Newspaper className="h-5 w-5" aria-hidden="true" />,
+      },
+      {
+        title: "Total Sectors",
+        value: sectorsQuery.totalSectors,
+        isLoading: sectorsQuery.isLoading,
+        description: "Sector records available for grouping and discovery.",
+        icon: <Layers3 className="h-5 w-5" aria-hidden="true" />,
+      },
+    ],
+    [
+      companiesQuery.isLoading,
+      companiesQuery.totalCompanies,
+      newsQuery.isLoading,
+      newsQuery.totalNews,
+      problemsQuery.isLoading,
+      problemsQuery.totalProblems,
+      sectorsQuery.isLoading,
+      sectorsQuery.totalSectors,
+    ],
+  );
 
-    const values: ChartDatum[] = [];
-    if (dashboard.total_companies > 0) {
-      values.push({
-        label: "Companies w/ Sectors",
-        value: Math.round(
-          (dashboard.companies_with_sectors / dashboard.total_companies) * 100,
-        ),
-      });
-      values.push({
-        label: "Companies w/ News",
-        value: Math.round(
-          (dashboard.companies_with_news / dashboard.total_companies) * 100,
-        ),
-      });
-    }
-    if (dashboard.total_problems > 0) {
-      values.push({
-        label: "Problems Categorized",
-        value: Math.round(
-          (dashboard.problems_with_category / dashboard.total_problems) * 100,
-        ),
-      });
-      values.push({
-        label: "Problems w/ Severity",
-        value: Math.round(
-          (dashboard.problems_with_severity / dashboard.total_problems) * 100,
-        ),
-      });
-    }
+  const companiesByCountryData = useMemo(
+    () =>
+      aggregateByLabel(companiesQuery.companies, (company) => company.country, {
+        emptyLabel: "Unknown Country",
+        limit: 7,
+      }),
+    [companiesQuery.companies],
+  );
 
-    return values.filter((entry) => Number.isFinite(entry.value));
-  }, [dashboardQuery.dashboard]);
+  const companiesByAICategoryData = useMemo(
+    () =>
+      aggregateByLabel(companiesQuery.companies, (company) => company.ai_category, {
+        emptyLabel: "Unspecified Category",
+        limit: 6,
+      }),
+    [companiesQuery.companies],
+  );
 
-  const problemsSeverityData = useMemo<ChartDatum[]>(() => {
-    const counts = new Map<string, number>();
-    for (const problem of problemsQuery.problems) {
-      const key = problem.severity?.trim() || "Unspecified";
-      counts.set(key, (counts.get(key) ?? 0) + 1);
-    }
-    return [...counts.entries()].map(([label, value]) => ({ label, value }));
-  }, [problemsQuery.problems]);
+  const hasProblemIndustryData = useMemo(
+    () => problemsQuery.problems.some((problem) => Boolean(normalizeLabel(problem.industry))),
+    [problemsQuery.problems],
+  );
+
+  const problemsByIndustryData = useMemo(
+    () =>
+      aggregateByLabel(problemsQuery.problems, (problem) => problem.industry, {
+        includeEmpty: false,
+        limit: 7,
+      }),
+    [problemsQuery.problems],
+  );
 
   const newsTimelineData = useMemo<ChartDatum[]>(() => {
     const counts = new Map<string, number>();
+
     for (const article of newsQuery.articles) {
       const date = new Date(article.published_at);
       if (Number.isNaN(date.getTime())) {
         continue;
       }
-      const label = date.toISOString().slice(0, 10);
-      counts.set(label, (counts.get(label) ?? 0) + 1);
+
+      const isoDate = date.toISOString().slice(0, 10);
+      counts.set(isoDate, (counts.get(isoDate) ?? 0) + 1);
     }
 
     return [...counts.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-12)
-      .map(([label, value]) => ({ label, value }));
+      .slice(-10)
+      .map(([label, value]) => ({
+        label: formatTimelineLabel(label),
+        value,
+      }));
   }, [newsQuery.articles]);
 
   const quickStats = useMemo(() => {
-    const totalCompanies = companiesQuery.totalCompanies;
-    const totalProblems = problemsQuery.totalProblems;
-    const dashboard = dashboardQuery.dashboard;
+    const averageNewsPerCompany =
+      companiesQuery.totalCompanies > 0
+        ? (newsQuery.totalNews / companiesQuery.totalCompanies).toFixed(2)
+        : "N/A";
 
-    const averageProblemsPerCompany =
-      totalCompanies > 0 ? (totalProblems / totalCompanies).toFixed(2) : "—";
+    const companiesWithKnownCountry = companiesQuery.companies.filter((company) =>
+      Boolean(normalizeLabel(company.country)),
+    ).length;
+    const countryCoverage =
+      companiesQuery.totalCompanies > 0
+        ? `${Math.round((companiesWithKnownCountry / companiesQuery.totalCompanies) * 100)}%`
+        : "N/A";
 
-    const companiesWithNews = dashboard
-      ? `${dashboard.companies_with_news.toLocaleString()}`
-      : "—";
-
-    const coveragePercent = dashboard
-      ? (() => {
-          const numerator =
-            dashboard.companies_with_sectors +
-            dashboard.companies_with_news +
-            dashboard.problems_with_category +
-            dashboard.problems_with_severity;
-          const denominator =
-            dashboard.total_companies * 2 + dashboard.total_problems * 2;
-
-          if (denominator <= 0) {
-            return "—";
-          }
-
-          return `${Math.round((numerator / denominator) * 100)}%`;
-        })()
-      : "—";
+    const companiesWithKnownCategory = companiesQuery.companies.filter((company) =>
+      Boolean(normalizeLabel(company.ai_category)),
+    ).length;
+    const categoryCoverage =
+      companiesQuery.totalCompanies > 0
+        ? `${Math.round((companiesWithKnownCategory / companiesQuery.totalCompanies) * 100)}%`
+        : "N/A";
 
     return {
-      averageProblemsPerCompany,
-      companiesWithNews,
-      coveragePercent,
+      averageNewsPerCompany,
+      categoryCoverage,
+      countryCoverage,
     };
   }, [
+    companiesQuery.companies,
     companiesQuery.totalCompanies,
-    dashboardQuery.dashboard,
-    problemsQuery.totalProblems,
+    newsQuery.totalNews,
   ]);
 
   const latestCompanies = useMemo(
@@ -313,7 +386,6 @@ export function DashboardPage(): ReactElement {
     setIsRefreshing(true);
     try {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: dashboardQueryKey }),
         queryClient.invalidateQueries({ queryKey: companiesQueryKey }),
         queryClient.invalidateQueries({ queryKey: problemsQueryKey }),
         queryClient.invalidateQueries({ queryKey: sectorsQueryKey }),
@@ -325,16 +397,14 @@ export function DashboardPage(): ReactElement {
   };
 
   const anyQuickStatsLoading =
-    dashboardQuery.isLoading || companiesQuery.isLoading || problemsQuery.isLoading;
+    companiesQuery.isLoading || newsQuery.isLoading || sectorsQuery.isLoading;
   const anyActivityLoading =
     companiesQuery.isLoading || newsQuery.isLoading || problemsQuery.isLoading;
-  const anyChartLoading =
-    dashboardQuery.isLoading || problemsQuery.isLoading || newsQuery.isLoading;
 
   return (
     <PageContainer
       title="Dashboard"
-      subtitle="A live analytics overview powered by AtlasAI backend datasets."
+      subtitle="A live analytics overview powered by AtlasAI frontend datasets."
     >
       <div className="flex justify-end">
         <button
@@ -352,29 +422,63 @@ export function DashboardPage(): ReactElement {
         </button>
       </div>
 
-      {dashboardQuery.isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <LoadingSkeletonCard key={index} />
-          ))}
-        </div>
-      ) : dashboardQuery.isError || !dashboardQuery.dashboard ? (
-        <WidgetError
-          title="KPI metrics unavailable"
-          message="Dashboard KPI metrics could not be loaded right now."
-        />
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {primaryMetricCards.map((card) => (
-            <MetricCard
-              key={card.key}
-              description={card.description}
-              title={card.title}
-              value={dashboardQuery.dashboard![card.key] as number}
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {metricCards.map((card) => (
+          <MetricCard key={card.title} {...card} />
+        ))}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold text-slate-950 dark:text-white">Charts</h2>
+        <div className="grid gap-4 xl:grid-cols-2">
+          {companiesQuery.isLoading ? (
+            <ChartSkeletonCard />
+          ) : companiesQuery.isError ? (
+            <WidgetError
+              title="Companies by country unavailable"
+              message="Company data failed to load."
             />
-          ))}
+          ) : (
+            <CompaniesByCountryChart data={companiesByCountryData} />
+          )}
+
+          {companiesQuery.isLoading ? (
+            <ChartSkeletonCard />
+          ) : companiesQuery.isError ? (
+            <WidgetError
+              title="AI category chart unavailable"
+              message="Company data failed to load."
+            />
+          ) : (
+            <CompaniesByAICategoryChart data={companiesByAICategoryData} />
+          )}
+
+          {problemsQuery.isLoading ? (
+            <ChartSkeletonCard />
+          ) : problemsQuery.isError ? (
+            <WidgetError
+              title="Problems by industry unavailable"
+              message="Problem data failed to load."
+            />
+          ) : (
+            <ProblemsByIndustryChart
+              data={problemsByIndustryData}
+              dataAvailable={hasProblemIndustryData}
+            />
+          )}
+
+          {newsQuery.isLoading ? (
+            <ChartSkeletonCard />
+          ) : newsQuery.isError ? (
+            <WidgetError
+              title="Latest news timeline unavailable"
+              message="News data failed to load."
+            />
+          ) : (
+            <LatestNewsTimelineChart data={newsTimelineData} />
+          )}
         </div>
-      )}
+      </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-semibold text-slate-950 dark:text-white">Quick Stats</h2>
@@ -384,7 +488,7 @@ export function DashboardPage(): ReactElement {
               <LoadingSkeletonCard key={index} />
             ))}
           </div>
-        ) : dashboardQuery.isError && companiesQuery.isError && problemsQuery.isError ? (
+        ) : companiesQuery.isError && newsQuery.isError && sectorsQuery.isError ? (
           <WidgetError
             title="Quick stats unavailable"
             message="Required datasets failed to load."
@@ -392,57 +496,20 @@ export function DashboardPage(): ReactElement {
         ) : (
           <div className="grid gap-4 md:grid-cols-3">
             <SmallStatCard
-              title="Avg. Problems / Company"
-              value={quickStats.averageProblemsPerCompany}
-              description="Total problems divided by total companies."
+              title="Avg. News / Company"
+              value={quickStats.averageNewsPerCompany}
+              description="Total news articles divided by total companies."
             />
             <SmallStatCard
-              title="Companies with News"
-              value={quickStats.companiesWithNews}
-              description="Company records currently linked to news articles."
+              title="Country Coverage"
+              value={quickStats.countryCoverage}
+              description="Companies that currently include a country value."
             />
             <SmallStatCard
-              title="Coverage"
-              value={quickStats.coveragePercent}
-              description="Derived enrichment coverage across companies and problems."
+              title="AI Category Coverage"
+              value={quickStats.categoryCoverage}
+              description="Companies that currently include an AI category."
             />
-          </div>
-        )}
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold text-slate-950 dark:text-white">Analytics</h2>
-        {anyChartLoading ? (
-          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-            <ChartSkeletonCard />
-            <ChartSkeletonCard />
-            <ChartSkeletonCard />
-          </div>
-        ) : (
-          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-            {problemsQuery.isError ? (
-              <WidgetError
-                title="Problems chart unavailable"
-                message="Problem data failed to load."
-              />
-            ) : (
-              <ProblemsSeverityChart data={problemsSeverityData} />
-            )}
-
-            {newsQuery.isError ? (
-              <WidgetError title="News chart unavailable" message="News data failed to load." />
-            ) : (
-              <NewsTimelineChart data={newsTimelineData} />
-            )}
-
-            {dashboardQuery.isError ? (
-              <WidgetError
-                title="Coverage chart unavailable"
-                message="Dashboard metrics failed to load."
-              />
-            ) : (
-              <DatasetCoverageChart data={coverageData} />
-            )}
           </div>
         )}
       </section>
@@ -493,7 +560,7 @@ export function DashboardPage(): ReactElement {
         ) : sectorsQuery.sectors.length ? (
           <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Top sectors in current dataset
+              Top sectors in the current dataset
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {sectorsQuery.sectors.slice(0, 10).map((sector: Sector) => (
