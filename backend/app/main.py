@@ -6,7 +6,7 @@ from app.api.router import api_router
 
 def create_application() -> FastAPI:
     app = FastAPI(
-        title="InsightForge AI",
+        title="Atlas AI",
         description="AI-powered Business Intelligence Platform",
         version="1.0.0",
     )
@@ -24,7 +24,7 @@ def create_application() -> FastAPI:
     @app.get("/", tags=["Root"])
     async def read_root() -> dict[str, str]:
         return {
-            "message": "InsightForge AI Backend Running Successfully 🚀"
+            "message": "Atlas AI Backend Running Successfully 🚀"
         }
 
     app.include_router(api_router)

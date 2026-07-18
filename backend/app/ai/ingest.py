@@ -6,6 +6,7 @@ from collections.abc import Iterable
 import logging
 from time import perf_counter
 from typing import Any
+from uuid import UUID
 
 from langchain_core.documents import Document
 from sqlalchemy import select
@@ -402,6 +403,40 @@ class PostgresVectorIngestionService:
 
         self.logger.info(
             "Indexed %s news chunk(s) in %.3f seconds.",
+            indexed_count,
+            perf_counter() - started_at,
+        )
+        return indexed_count
+
+    def index_news_by_ids(self, news_ids: list[UUID]) -> int:
+        """Index only selected news articles from PostgreSQL.
+
+        Args:
+            news_ids: News article identifiers to index.
+
+        Returns:
+            int: Number of indexed news chunks.
+        """
+
+        if not news_ids:
+            return 0
+
+        started_at = perf_counter()
+        try:
+            news_articles = list(
+                self.session.execute(
+                    select(NewsArticle)
+                    .options(selectinload(NewsArticle.company))
+                    .where(NewsArticle.id.in_(news_ids))
+                    .order_by(NewsArticle.published_at.desc())
+                ).scalars().all()
+            )
+            indexed_count = self._index_documents(self._build_news_documents(news_articles))
+        except Exception as exc:  # pragma: no cover - depends on DB runtime
+            raise IndexingError("Failed to index selected news articles from PostgreSQL.") from exc
+
+        self.logger.info(
+            "Indexed %s selected news chunk(s) in %.3f seconds.",
             indexed_count,
             perf_counter() - started_at,
         )

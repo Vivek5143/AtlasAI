@@ -24,44 +24,40 @@ class ChromaVectorStoreService:
         persist_directory: str | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
-        """Initialize the ChromaDB vector store service.
-
-        Args:
-            embeddings: Optional embedding service override.
-            collection_name: Chroma collection name.
-            persist_directory: Optional persistence path override.
-            logger: Optional logger instance.
-        """
+        """Initialize the ChromaDB vector store service."""
 
         self.embeddings = embeddings or AtlasAIEmbeddings()
         self.collection_name = collection_name
         self.persist_directory = persist_directory or settings.CHROMA_DB_PATH
-        self.logger = logger or logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.logger = logger or logging.getLogger(
+            f"{__name__}.{self.__class__.__name__}"
+        )
         self._vector_store: Chroma | None = None
 
     def initialize(self) -> Chroma:
-        """Initialize and return the persistent Chroma collection.
-
-        Returns:
-            Chroma: Initialized Chroma vector store.
-
-        Raises:
-            VectorStoreError: If initialization fails.
-        """
+        """Initialize and return the persistent Chroma collection."""
 
         if self._vector_store is not None:
             return self._vector_store
 
         started_at = perf_counter()
+
         try:
-            Path(self.persist_directory).mkdir(parents=True, exist_ok=True)
+            Path(self.persist_directory).mkdir(
+                parents=True,
+                exist_ok=True,
+            )
+
             self._vector_store = Chroma(
                 collection_name=self.collection_name,
                 embedding_function=self.embeddings,
                 persist_directory=self.persist_directory,
             )
-        except Exception as exc:  # pragma: no cover - external storage runtime
-            raise VectorStoreError("Failed to initialize ChromaDB.") from exc
+
+        except Exception as exc:
+            raise VectorStoreError(
+                "Failed to initialize ChromaDB."
+            ) from exc
 
         self.logger.info(
             "Initialized ChromaDB collection '%s' at '%s' in %.3f seconds.",
@@ -69,82 +65,97 @@ class ChromaVectorStoreService:
             self.persist_directory,
             perf_counter() - started_at,
         )
+
         return self._vector_store
 
     def get_collection(self) -> Chroma:
-        """Return the initialized Chroma collection.
-
-        Returns:
-            Chroma: Active vector store instance.
-        """
+        """Return the initialized Chroma collection."""
 
         return self.initialize()
 
     def document_count(self) -> int:
-        """Return the number of indexed vectors in the collection.
-
-        Returns:
-            int: Indexed vector count.
-        """
+        """Return the number of indexed vectors in the collection."""
 
         try:
-            return int(self.get_collection()._collection.count())
-        except Exception as exc:  # pragma: no cover - external storage runtime
-            raise VectorStoreError("Failed to count ChromaDB documents.") from exc
+            return int(
+                self.get_collection()._collection.count()
+            )
 
-    def add_documents(self, documents: list[Document], ids: list[str]) -> list[str]:
-        """Add LangChain documents to the collection.
+        except Exception as exc:
+            raise VectorStoreError(
+                "Failed to count ChromaDB documents."
+            ) from exc
 
-        Args:
-            documents: Documents to add.
-            ids: Stable vector document IDs.
-
-        Returns:
-            list[str]: Persisted document IDs.
-        """
+    def add_documents(
+        self,
+        documents: list[Document],
+        ids: list[str],
+    ) -> list[str]:
+        """Add LangChain documents to the collection."""
 
         if not documents:
             return []
 
         started_at = perf_counter()
+
         try:
-            self.get_collection().add_documents(documents=documents, ids=ids)
-        except Exception as exc:  # pragma: no cover - external storage runtime
-            raise VectorStoreError("Failed to add documents to ChromaDB.") from exc
+            self.get_collection().add_documents(
+                documents=documents,
+                ids=ids,
+            )
+
+        except Exception as exc:
+            self.logger.exception(
+                "Failed to add documents to ChromaDB."
+            )
+
+            raise VectorStoreError(
+                f"Failed to add documents to ChromaDB: "
+                f"{type(exc).__name__}: {exc}"
+            ) from exc
 
         self.logger.info(
             "Indexed %s document chunk(s) in %.3f seconds.",
             len(documents),
             perf_counter() - started_at,
         )
+
         return ids
 
-    def update_documents(self, documents: list[Document], ids: list[str]) -> list[str]:
-        """Upsert documents in the collection using stable IDs.
-
-        Args:
-            documents: Documents to upsert.
-            ids: Stable vector document IDs.
-
-        Returns:
-            list[str]: Updated document IDs.
-        """
+    def update_documents(
+        self,
+        documents: list[Document],
+        ids: list[str],
+    ) -> list[str]:
+        """Upsert documents in the collection using stable IDs."""
 
         if not documents:
             return []
 
         started_at = perf_counter()
+
         try:
-            self.delete_documents(ids=ids, raise_if_missing=False)
-            self.get_collection().add_documents(documents=documents, ids=ids)
-        except Exception as exc:  # pragma: no cover - external storage runtime
-            raise VectorStoreError("Failed to update documents in ChromaDB.") from exc
+            self.delete_documents(
+                ids=ids,
+                raise_if_missing=False,
+            )
+
+            self.get_collection().add_documents(
+                documents=documents,
+                ids=ids,
+            )
+
+        except Exception as exc:
+            raise VectorStoreError(
+                "Failed to update documents in ChromaDB."
+            ) from exc
 
         self.logger.info(
             "Upserted %s document chunk(s) in %.3f seconds.",
             len(documents),
             perf_counter() - started_at,
         )
+
         return ids
 
     def delete_documents(
@@ -152,55 +163,164 @@ class ChromaVectorStoreService:
         ids: list[str],
         raise_if_missing: bool = False,
     ) -> None:
-        """Delete documents by vector IDs.
-
-        Args:
-            ids: Vector IDs to delete.
-            raise_if_missing: Whether to raise when deletion fails.
-        """
+        """Delete documents by vector IDs."""
 
         if not ids:
             return
 
         try:
-            self.get_collection().delete(ids=ids)
-        except Exception as exc:  # pragma: no cover - external storage runtime
-            if raise_if_missing:
-                raise VectorStoreError("Failed to delete ChromaDB documents.") from exc
-            self.logger.debug("Ignored ChromaDB delete failure: %s", exc)
+            self.get_collection().delete(
+                ids=ids
+            )
 
-    def search(self, query: str, top_k: int = 4) -> list[tuple[Document, float]]:
-        """Perform semantic similarity search.
+        except Exception as exc:
+            if raise_if_missing:
+                raise VectorStoreError(
+                    "Failed to delete ChromaDB documents."
+                ) from exc
+
+            self.logger.debug(
+                "Ignored ChromaDB delete failure: %s",
+                exc,
+            )
+
+    def delete_by_entity_type(
+        self,
+        entity_type: str,
+    ) -> int:
+        """Delete all vectors belonging to a specific entity type.
+
+        This allows one section of the AtlasAI knowledge base,
+        such as news, to be rebuilt without deleting company,
+        problem, or sector vectors.
+
+        Args:
+            entity_type: Metadata entity type to delete.
+
+        Returns:
+            int: Number of vectors deleted.
+
+        Raises:
+            VectorStoreError: If the delete operation fails.
+        """
+
+        if not entity_type or not entity_type.strip():
+            return 0
+
+        normalized_entity_type = entity_type.strip()
+
+        try:
+            vector_store = self.get_collection()
+
+            payload = vector_store.get(
+                where={
+                    "entity_type": normalized_entity_type
+                },
+                include=[],
+            )
+
+            ids = payload.get("ids", [])
+
+            if not ids:
+                self.logger.info(
+                    "No ChromaDB vectors found for entity_type='%s'.",
+                    normalized_entity_type,
+                )
+                return 0
+
+            vector_store.delete(
+                ids=ids
+            )
+
+            self.logger.info(
+                "Deleted %s ChromaDB vector(s) for entity_type='%s'.",
+                len(ids),
+                normalized_entity_type,
+            )
+
+            return len(ids)
+
+        except Exception as exc:
+            self.logger.exception(
+                "Failed to delete ChromaDB vectors "
+                "for entity_type='%s'.",
+                normalized_entity_type,
+            )
+
+            raise VectorStoreError(
+                f"Failed to delete ChromaDB vectors "
+                f"for entity_type='{normalized_entity_type}'."
+            ) from exc
+
+    def search(
+        self,
+        query: str,
+        top_k: int = 4,
+        metadata_filter: dict | None = None,
+    ) -> list[tuple[Document, float]]:
+        """Perform semantic similarity search with optional metadata filtering.
 
         Args:
             query: User query string.
             top_k: Maximum number of chunks to return.
+            metadata_filter: Optional ChromaDB metadata filter.
 
         Returns:
-            list[tuple[Document, float]]: Retrieved documents and relevance scores.
+            list[tuple[Document, float]]:
+                Retrieved documents and relevance scores.
 
         Raises:
-            EmptyVectorStoreError: If the collection is empty.
-            VectorStoreError: If search fails.
+            EmptyVectorStoreError:
+                If the ChromaDB collection is empty.
+            VectorStoreError:
+                If the similarity search fails.
         """
 
         if self.document_count() == 0:
-            raise EmptyVectorStoreError("The ChromaDB collection is empty.")
+            raise EmptyVectorStoreError(
+                "The ChromaDB collection is empty."
+            )
 
         started_at = perf_counter()
+
         try:
-            results = self.get_collection().similarity_search_with_relevance_scores(
-                query=query,
-                k=top_k,
+            search_kwargs = {
+                "query": query,
+                "k": top_k,
+            }
+
+            if metadata_filter:
+                search_kwargs["filter"] = metadata_filter
+
+            results = (
+                self.get_collection()
+                .similarity_search_with_relevance_scores(
+                    **search_kwargs
+                )
             )
-        except Exception as exc:  # pragma: no cover - external storage runtime
-            raise VectorStoreError("Failed to search ChromaDB.") from exc
+
+        except Exception as exc:
+            self.logger.exception(
+                "ChromaDB similarity search failed "
+                "for query=%r top_k=%s metadata_filter=%r",
+                query,
+                top_k,
+                metadata_filter,
+            )
+
+            raise VectorStoreError(
+                f"Failed to search ChromaDB: "
+                f"{type(exc).__name__}: {exc}"
+            ) from exc
 
         self.logger.info(
-            "Semantic search returned %s document(s) in %.3f seconds.",
+            "Semantic search returned %s document(s) "
+            "in %.3f seconds. metadata_filter=%r",
             len(results),
             perf_counter() - started_at,
+            metadata_filter,
         )
+
         return results
 
     def clear_collection(self) -> None:
@@ -208,11 +328,27 @@ class ChromaVectorStoreService:
 
         try:
             vector_store = self.get_collection()
-            payload = vector_store.get(include=[])
-            ids = payload.get("ids", [])
-            if ids:
-                vector_store.delete(ids=ids)
-        except Exception as exc:  # pragma: no cover - external storage runtime
-            raise VectorStoreError("Failed to clear the ChromaDB collection.") from exc
 
-        self.logger.info("Cleared ChromaDB collection '%s'.", self.collection_name)
+            payload = vector_store.get(
+                include=[]
+            )
+
+            ids = payload.get(
+                "ids",
+                [],
+            )
+
+            if ids:
+                vector_store.delete(
+                    ids=ids
+                )
+
+        except Exception as exc:
+            raise VectorStoreError(
+                "Failed to clear the ChromaDB collection."
+            ) from exc
+
+        self.logger.info(
+            "Cleared ChromaDB collection '%s'.",
+            self.collection_name,
+        )

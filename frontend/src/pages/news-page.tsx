@@ -1,11 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactElement } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Filter, Link2, RefreshCcw, Search, X } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { PageContainer } from "@/components/page-container";
+import { dashboardQueryKey } from "@/hooks/use-dashboard";
 import { useNews } from "@/hooks/use-news";
+import { newsQueryKey } from "@/hooks/use-news";
+import { refreshNews } from "@/services/news";
 import type { NewsArticle } from "@/types/news";
+import type { NewsRefreshSummary } from "@/types/news";
 
 function extractSource(url: string): string {
   try {
@@ -141,6 +146,7 @@ function NewsDetailsDrawer({
 }
 
 export function NewsPage(): ReactElement {
+  const queryClient = useQueryClient();
   const {
     articles,
     isError,
@@ -155,9 +161,31 @@ export function NewsPage(): ReactElement {
   const [consumedSelectedArticleId, setConsumedSelectedArticleId] = useState<string | null>(
     null,
   );
+  const [refreshSummary, setRefreshSummary] = useState<NewsRefreshSummary | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
 
   const routedSearchTerm = searchParams.get("search") ?? "";
   const routedSelectedArticleId = searchParams.get("selected");
+
+  const refreshMutation = useMutation({
+    mutationFn: refreshNews,
+    onSuccess: async (summary) => {
+      setRefreshSummary(summary);
+      setRefreshError(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: newsQueryKey }),
+        queryClient.invalidateQueries({ queryKey: dashboardQueryKey }),
+      ]);
+    },
+    onError: (error: unknown) => {
+      const message =
+        error && typeof error === "object" && "response" in error
+          ? String((error as { response?: { data?: { detail?: string } } }).response?.data?.detail || "")
+          : "";
+      setRefreshSummary(null);
+      setRefreshError(message || "Unable to refresh news right now. Please try again.");
+    },
+  });
 
   useEffect(() => {
     setSearchTerm(routedSearchTerm);
@@ -187,7 +215,17 @@ export function NewsPage(): ReactElement {
                 <span className="font-medium text-slate-700 dark:text-slate-200">
                   Company:
                 </span>{" "}
-                {article.company_id || "—"}
+                {article.company_id ? (
+                  <Link
+                    to={`/companies/${article.company_id}`}
+                    onClick={(event) => event.stopPropagation()}
+                    className="text-blue-600 hover:underline dark:text-blue-400"
+                  >
+                    {article.company_name || article.company_id}
+                  </Link>
+                ) : (
+                  "—"
+                )}
               </p>
               <p>
                 <span className="font-medium text-slate-700 dark:text-slate-200">
@@ -202,10 +240,15 @@ export function NewsPage(): ReactElement {
                 {source}
               </p>
             </div>
-            <p className="mt-4 text-sm leading-6 text-slate-500 dark:text-slate-400">
-              This record is available from the backend and can be reviewed in
-              detail.
-            </p>
+            {article.description?.trim() ? (
+              <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                {article.description}
+              </p>
+            ) : (
+              <p className="mt-4 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                This article is stored in the AtlasAI dataset and available for detail review.
+              </p>
+            )}
             <a
               href={article.url}
               target="_blank"
@@ -279,12 +322,18 @@ export function NewsPage(): ReactElement {
             <button
               type="button"
               onClick={() => {
-                void refetch();
+                setRefreshSummary(null);
+                setRefreshError(null);
+                refreshMutation.mutate();
               }}
+              disabled={refreshMutation.isPending}
               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800"
             >
-              <RefreshCcw className="h-4 w-4" aria-hidden="true" />
-              Refresh
+              <RefreshCcw
+                className={`h-4 w-4 ${refreshMutation.isPending ? "animate-spin" : ""}`}
+                aria-hidden="true"
+              />
+              {refreshMutation.isPending ? "Refreshing news..." : "Refresh"}
             </button>
             <button
               type="button"
@@ -303,6 +352,27 @@ export function NewsPage(): ReactElement {
               <NewsSkeletonCard key={index} />
             ))}
           </div>
+        ) : null}
+
+        {refreshSummary ? (
+          <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200">
+            <p className="font-medium">Refresh complete:</p>
+            <p className="mt-1">
+              {refreshSummary.companies_checked} companies checked ({refreshSummary.companies_total} total
+              companies), {refreshSummary.articles_fetched} articles fetched.
+            </p>
+            <p>
+              {refreshSummary.articles_created} new, {refreshSummary.articles_updated} updated,{" "}
+              {refreshSummary.articles_duplicates} duplicates,{" "}
+              {refreshSummary.articles_rejected_irrelevant} rejected as irrelevant.
+            </p>
+          </section>
+        ) : null}
+
+        {refreshError ? (
+          <section className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200">
+            {refreshError}
+          </section>
         ) : null}
 
         {!isLoading && isError ? (

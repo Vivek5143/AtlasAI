@@ -4,8 +4,24 @@ body,
   min-height: 100%;
 }
 
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+.font-editorial {
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+}
+
 body {
-  @apply bg-slate-100 text-slate-900 antialiased transition-colors duration-200 dark:bg-slate-950 dark:text-slate-100;
+  font-family: "Aptos", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  @apply bg-[#f3efe6] text-slate-900 antialiased transition-colors duration-200 dark:bg-slate-950 dark:text-slate-100;
+  background-image:
+    radial-gradient(circle at top left, rgba(61, 108, 86, 0.14), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(243, 239, 230, 0));
 }
 
 a {
@@ -13,15 +29,15 @@ a {
 }
 
 * {
-  @apply border-slate-200 dark:border-slate-800;
+  @apply border-[#d7ddd1] dark:border-slate-800;
 }
 
 button,
 input,
 a {
-  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950;
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f3efe6] dark:focus-visible:ring-offset-slate-950;
 }
 
 ::selection {
-  @apply bg-blue-100 text-blue-950 dark:bg-blue-500/30 dark:text-blue-50;
+  @apply bg-emerald-100 text-emerald-950 dark:bg-emerald-500/30 dark:text-emerald-50;
 }

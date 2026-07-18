@@ -75,3 +75,9 @@ class NewsArticle(Base):
         back_populates="news_articles",
         lazy="selectin",
     )
+
+    @property
+    def company_name(self) -> str | None:
+        """Return the associated company name when loaded."""
+
+        return self.company.vendor_name if self.company is not None else None

@@ -6,8 +6,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Sequence
 from uuid import UUID
 
-from sqlalchemy import delete, select
-from sqlalchemy.orm import Session
+from sqlalchemy import delete, func, select
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.news_article import NewsArticle
 
@@ -67,6 +67,7 @@ class NewsRepository:
 
         statement = (
             select(NewsArticle)
+            .options(selectinload(NewsArticle.company))
             .order_by(NewsArticle.published_at.desc())
             .limit(limit)
         )
@@ -84,10 +85,44 @@ class NewsRepository:
 
         statement = (
             select(NewsArticle)
+            .options(selectinload(NewsArticle.company))
             .where(NewsArticle.company_id == company_id)
             .order_by(NewsArticle.published_at.desc())
         )
         return list(self.session.execute(statement).scalars().all())
+
+    def get_all_article_ids(self) -> list[UUID]:
+        """Return all persisted news article identifiers."""
+
+        statement = select(NewsArticle.id).order_by(NewsArticle.published_at.desc())
+        return list(self.session.execute(statement).scalars().all())
+
+    def get_article_by_url(self, url: str) -> NewsArticle | None:
+        """Return an article by canonical URL when present."""
+
+        statement = select(NewsArticle).where(NewsArticle.url == url).limit(1)
+        return self.session.execute(statement).scalars().first()
+
+    def get_articles_by_url_prefix(self, url_prefix: str) -> list[NewsArticle]:
+        """Return candidate articles whose URLs start with a shared prefix."""
+
+        statement = select(NewsArticle).where(NewsArticle.url.startswith(url_prefix))
+        return list(self.session.execute(statement).scalars().all())
+
+    def get_article_by_title_and_published_at(
+        self,
+        title: str,
+        published_at: datetime,
+    ) -> NewsArticle | None:
+        """Return an article candidate using title + publication time fallback key."""
+
+        statement = (
+            select(NewsArticle)
+            .where(func.lower(NewsArticle.title) == title.strip().lower())
+            .where(NewsArticle.published_at == published_at)
+            .limit(1)
+        )
+        return self.session.execute(statement).scalars().first()
 
     def delete_old_articles(self, days: int) -> int:
         """Delete articles older than a cutoff.

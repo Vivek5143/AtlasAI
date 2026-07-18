@@ -16,6 +16,15 @@ class Settings(BaseSettings):
     CHROMA_DB_PATH: str = "./chroma_db"
     EMBEDDING_MODEL: str = "BAAI/bge-small-en-v1.5"
     NEWS_API_KEY: str = ""
+    NEWS_SYNC_LOOKBACK_DAYS: int = 7
+    NEWS_SYNC_MAX_COMPANIES_PER_REFRESH: int = 25
+    NEWS_SYNC_PAGE_SIZE: int = 10
+    NEWS_SYNC_ROTATION_WINDOW_MINUTES: int = 60
+    NEWS_SYNC_MARKET_KEYWORDS: str = (
+        "AI,artificial intelligence,machine learning,automation,investment,"
+        "funding,acquisition,partnership,launch,technology,expansion,contract,deployment"
+    )
+    NEWS_SYNC_BLOCKED_DOMAINS: str = "pypi.org,npmjs.com,registry.npmjs.org"
     RAG_TOP_K: int = 4
 
     @property

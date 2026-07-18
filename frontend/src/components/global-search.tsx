@@ -67,7 +67,7 @@ function formatArticleMeta(url: string, publishedAt: string): string {
     return source;
   }
 
-  return `${source} • ${new Intl.DateTimeFormat("en-US", {
+  return `${source} / ${new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -104,12 +104,12 @@ function SearchLoadingState(): ReactElement {
     <div className="space-y-4 px-4 py-5 sm:px-5">
       {Array.from({ length: 3 }).map((_, groupIndex) => (
         <div key={groupIndex} className="space-y-3">
-          <div className="h-3 w-24 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
+          <div className="h-3 w-24 animate-pulse rounded-full bg-[#dde5dc] dark:bg-slate-800" />
           <div className="space-y-2">
             {Array.from({ length: 2 }).map((__, itemIndex) => (
               <div
                 key={itemIndex}
-                className="h-16 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-900"
+                className="h-16 animate-pulse rounded-[1.5rem] bg-[#f1f4ee] dark:bg-slate-900"
               />
             ))}
           </div>
@@ -122,10 +122,10 @@ function SearchLoadingState(): ReactElement {
 function SearchEmptyState({ query }: { query: string }): ReactElement {
   return (
     <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
-      <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+      <div className="rounded-[1.75rem] border border-[#d7ddd1] bg-[#f6f5f0] px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
         <Search className="h-5 w-5 text-slate-500 dark:text-slate-400" aria-hidden="true" />
       </div>
-      <h3 className="mt-5 text-lg font-semibold text-slate-950 dark:text-white">
+      <h3 className="mt-5 font-editorial text-3xl tracking-[-0.04em] text-slate-950 dark:text-white">
         No results for &quot;{query}&quot;
       </h3>
       <p className="mt-2 max-w-md text-sm leading-6 text-slate-500 dark:text-slate-400">
@@ -138,12 +138,12 @@ function SearchEmptyState({ query }: { query: string }): ReactElement {
 function SearchIntroState(): ReactElement {
   return (
     <div className="flex flex-col gap-4 px-5 py-6">
-      <div className="rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(135deg,_rgba(255,255,255,0.96)_0%,_rgba(241,245,249,0.96)_100%)] p-5 shadow-sm dark:border-slate-800 dark:bg-[linear-gradient(135deg,_rgba(15,23,42,0.96)_0%,_rgba(2,6,23,0.96)_100%)]">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700 dark:text-cyan-300">
+      <div className="rounded-[1.75rem] border border-[#d7ddd1] bg-[linear-gradient(135deg,_rgba(255,255,255,0.98)_0%,_rgba(238,242,235,0.98)_100%)] p-5 shadow-sm dark:border-slate-800 dark:bg-[linear-gradient(135deg,_rgba(15,23,42,0.96)_0%,_rgba(2,6,23,0.96)_100%)]">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#2f6b51] dark:text-emerald-300">
           Global Search
         </p>
-        <h3 className="mt-3 text-xl font-semibold tracking-tight text-slate-950 dark:text-white">
-          Search across AtlasAI in one place
+        <h3 className="mt-3 font-editorial text-3xl tracking-[-0.04em] text-slate-950 dark:text-white">
+          Search across AtlasAI in one quiet workspace
         </h3>
         <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-400">
           Type to search companies, problems, sectors, and news with grouped results and fast navigation.
@@ -159,7 +159,7 @@ function SearchIntroState(): ReactElement {
         ].map((hint) => (
           <div
             key={hint}
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
+            className="rounded-2xl border border-[#d7ddd1] bg-white/90 px-4 py-3 text-sm text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
           >
             {hint}
           </div>
@@ -195,14 +195,14 @@ function SearchResultRow({
       onMouseEnter={onHover}
       onClick={onSelect}
       className={cn(
-        "flex w-full items-center gap-4 rounded-2xl border px-4 py-3 text-left transition-all",
+        "flex w-full items-center gap-4 rounded-[1.5rem] border px-4 py-3 text-left transition-all",
         active
-          ? "border-cyan-300 bg-cyan-50/80 shadow-sm dark:border-cyan-700 dark:bg-cyan-950/30"
-          : "border-transparent bg-transparent hover:border-slate-200 hover:bg-slate-50 dark:hover:border-slate-800 dark:hover:bg-slate-950/70",
+          ? "border-[#bfd0c2] bg-[#edf4ee] shadow-sm dark:border-emerald-700/60 dark:bg-emerald-950/20"
+          : "border-transparent bg-transparent hover:border-[#d8ddd4] hover:bg-[#f7f6f1] dark:hover:border-slate-800 dark:hover:bg-slate-950/70",
       )}
     >
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300">
-        <Icon className="h-4.5 w-4.5" aria-hidden="true" />
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#d7ddd1] bg-white text-slate-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300">
+        <Icon className="h-4 w-4" aria-hidden="true" />
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-slate-950 dark:text-white">{item.title}</p>
@@ -269,7 +269,7 @@ export function GlobalSearch(): ReactElement {
       .slice(0, MAX_RESULTS_PER_GROUP)
       .map((company) => ({
         id: `company-${company.id}`,
-        meta: [company.country, company.ai_category].filter(Boolean).join(" • ") || "Company",
+        meta: [company.country, company.ai_category].filter(Boolean).join(" / ") || "Company",
         source: "companies" as const,
         title: company.vendor_name,
         to: `/companies/${company.id}`,
@@ -282,7 +282,7 @@ export function GlobalSearch(): ReactElement {
         meta:
           [problem.category, problem.problem_type, problem.severity]
             .filter(Boolean)
-            .join(" • ") || "Problem",
+            .join(" / ") || "Problem",
         source: "problems" as const,
         title: problem.name,
         to: buildFilteredRoute("/problems", problem.name, problem.id),
@@ -320,12 +320,12 @@ export function GlobalSearch(): ReactElement {
     ];
   }, [
     companiesQuery.data?.items,
+    debouncedSearchTerm,
     hasSearchTerm,
     newsQuery.data?.items,
     normalizedDebouncedSearchTerm,
     problemsQuery.data?.items,
     sectorsQuery.data?.items,
-    debouncedSearchTerm,
   ]);
 
   const flattenedResults = useMemo(
@@ -473,13 +473,13 @@ export function GlobalSearch(): ReactElement {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="hidden h-10 min-w-[15rem] items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/90 px-3 text-sm text-slate-500 shadow-sm transition-colors hover:border-slate-300 hover:bg-white md:inline-flex dark:border-slate-800 dark:bg-slate-900/90 dark:text-slate-400 dark:hover:border-slate-700"
+        className="hidden h-11 min-w-[18rem] items-center justify-between gap-3 rounded-full border border-[#d7ddd1] bg-white/90 px-4 text-sm text-slate-500 shadow-sm transition-colors hover:border-[#bcc9bf] hover:bg-white md:inline-flex dark:border-slate-800 dark:bg-slate-900/90 dark:text-slate-400 dark:hover:border-slate-700"
       >
         <span className="flex items-center gap-2">
           <Search className="h-4 w-4" aria-hidden="true" />
           <span>Search AtlasAI</span>
         </span>
-        <span className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400">
+        <span className="inline-flex items-center gap-1 rounded-full border border-[#d7ddd1] bg-[#f6f5f0] px-2.5 py-1 text-xs font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400">
           <Command className="h-3.5 w-3.5" aria-hidden="true" />
           <span>K</span>
         </span>
@@ -489,7 +489,7 @@ export function GlobalSearch(): ReactElement {
         type="button"
         aria-label="Open global search"
         onClick={() => setIsOpen(true)}
-        className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-100 hover:text-slate-950 md:hidden dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+        className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[#d7ddd1] bg-white/90 text-slate-600 shadow-sm transition-colors hover:bg-white hover:text-slate-950 md:hidden dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
       >
         <Search className="h-4 w-4" aria-hidden="true" />
       </button>
@@ -503,12 +503,12 @@ export function GlobalSearch(): ReactElement {
           onClick={() => setIsOpen(false)}
         >
           <div
-            className="mx-auto flex max-h-[calc(100vh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/95 shadow-[0_40px_120px_-40px_rgba(15,23,42,0.45)] dark:border-slate-800/80 dark:bg-slate-950/95"
+            className="mx-auto flex max-h-[calc(100vh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[2rem] border border-[#d7ddd1] bg-[#fbfaf6]/95 shadow-[0_40px_120px_-40px_rgba(15,23,42,0.45)] dark:border-slate-800/80 dark:bg-slate-950/95"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="border-b border-slate-200 px-4 py-4 dark:border-slate-800 sm:px-5">
+            <div className="border-b border-[#d7ddd1] px-4 py-4 dark:border-slate-800 sm:px-5">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#d7ddd1] bg-[#f6f5f0] text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
                   {isRefreshingResults || isLoadingResults ? (
                     <LoaderCircle className="h-5 w-5 animate-spin" aria-hidden="true" />
                   ) : (
@@ -553,7 +553,7 @@ export function GlobalSearch(): ReactElement {
                       aria-hidden="true"
                     />
                   </div>
-                  <h3 className="mt-5 text-lg font-semibold text-slate-950 dark:text-white">
+                  <h3 className="mt-5 font-editorial text-3xl tracking-[-0.04em] text-slate-950 dark:text-white">
                     Search is temporarily unavailable
                   </h3>
                   <p className="mt-2 max-w-md text-sm leading-6 text-slate-500 dark:text-slate-400">
@@ -599,15 +599,15 @@ export function GlobalSearch(): ReactElement {
               )}
             </div>
 
-            <div className="border-t border-slate-200 px-4 py-3 dark:border-slate-800 sm:px-5">
+            <div className="border-t border-[#d7ddd1] px-4 py-3 dark:border-slate-800 sm:px-5">
               <div className="flex flex-col gap-2 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between dark:text-slate-400">
                 <span>Search spans the existing AtlasAI companies, problems, sectors, and news APIs.</span>
                 <span className="inline-flex items-center gap-2">
-                  <kbd className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-medium dark:border-slate-700 dark:bg-slate-900">
+                  <kbd className="rounded-md border border-[#d7ddd1] bg-[#f6f5f0] px-2 py-1 font-medium dark:border-slate-700 dark:bg-slate-900">
                     Ctrl
                   </kbd>
                   <span>+</span>
-                  <kbd className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-medium dark:border-slate-700 dark:bg-slate-900">
+                  <kbd className="rounded-md border border-[#d7ddd1] bg-[#f6f5f0] px-2 py-1 font-medium dark:border-slate-700 dark:bg-slate-900">
                     K
                   </kbd>
                 </span>

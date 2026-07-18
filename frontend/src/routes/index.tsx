@@ -6,6 +6,7 @@ import { AskAtlasAI } from "@/pages/AskAtlasAI";
 import { CompanyDetailPage } from "@/pages/company-detail-page";
 import { CompaniesPage } from "@/pages/companies-page";
 import { DashboardPage } from "@/pages/dashboard-page";
+import { LoginPage } from "@/pages/login-page";
 import { NewsPage } from "@/pages/news-page";
 import { ProblemsPage } from "@/pages/problems-page";
 import { SectorsPage } from "@/pages/sectors-page";
@@ -19,6 +20,10 @@ function RootLayout(): ReactElement {
 }
 
 export const router = createBrowserRouter([
+  {
+    path: "/login",
+    element: <LoginPage />,
+  },
   {
     path: "/",
     element: <RootLayout />,
