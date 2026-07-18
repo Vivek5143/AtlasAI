@@ -1,6 +1,7 @@
 import {
   Bot,
   Building2,
+  Compass,
   LayoutDashboard,
   Newspaper,
   Shapes,
@@ -23,6 +24,7 @@ type SidebarProps = {
 const primaryNavigation = [
   { label: "Dashboard", to: "/", icon: LayoutDashboard, end: true },
   { label: "Companies", to: "/companies", icon: Building2 },
+  { label: "Discovery", to: "/discovery", icon: Compass },
   { label: "Problems", to: "/problems", icon: TriangleAlert },
   { label: "Sectors", to: "/sectors", icon: Shapes },
   { label: "News", to: "/news", icon: Newspaper },

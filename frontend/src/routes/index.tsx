@@ -3,6 +3,7 @@ import { createBrowserRouter, Outlet } from "react-router-dom";
 
 import { AppLayout } from "@/layouts/app-layout";
 import { AskAtlasAI } from "@/pages/AskAtlasAI";
+import { CompanyDiscoveryPage } from "@/pages/company-discovery-page";
 import { CompanyDetailPage } from "@/pages/company-detail-page";
 import { CompaniesPage } from "@/pages/companies-page";
 import { DashboardPage } from "@/pages/dashboard-page";
@@ -35,6 +36,10 @@ export const router = createBrowserRouter([
       {
         path: "companies",
         element: <CompaniesPage />,
+      },
+      {
+        path: "discovery",
+        element: <CompanyDiscoveryPage />,
       },
       {
         path: "companies/:companyId",

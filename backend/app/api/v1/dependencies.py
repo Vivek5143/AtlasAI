@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 from app.repositories.news_repository import NewsRepository
+from app.repositories.company_discovery_repository import CompanyDiscoveryRepository
 from app.repositories.company_repository import CompanyRepository
 from app.repositories.sector_repository import SectorRepository
 from app.repositories.problem_repository import ProblemRepository
@@ -16,6 +17,7 @@ from app.services.sector_service import SectorService
 from app.services.problem_service import ProblemService
 from app.services.news_service import NewsService
 from app.services.news_sync_service import NewsSyncService
+from app.services.company_discovery_service import CompanyDiscoveryService
 from app.ai.chat import AtlasAIRAGChatService
 
 
@@ -51,6 +53,16 @@ def get_news_sync_service(db: Session = Depends(get_db)) -> NewsSyncService:
     """Provide a NewsSyncService backed by the request-scoped DB session."""
 
     return NewsSyncService(session=db, news_repository=NewsRepository(db))
+
+
+def get_company_discovery_service(db: Session = Depends(get_db)) -> CompanyDiscoveryService:
+    """Provide the CompanyDiscoveryService backed by the request DB session."""
+
+    return CompanyDiscoveryService(
+        session=db,
+        repository=CompanyDiscoveryRepository(db),
+        company_service=CompanyService(CompanyRepository(db)),
+    )
 
 
 def get_ai_chat_service(db: Session = Depends(get_db)) -> AtlasAIRAGChatService:

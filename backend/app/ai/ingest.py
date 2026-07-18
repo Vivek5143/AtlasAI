@@ -381,6 +381,39 @@ class PostgresVectorIngestionService:
         )
         return indexed_count
 
+    def index_company_by_id(self, company_id: UUID) -> int:
+        """Index one company record from PostgreSQL.
+
+        Args:
+            company_id: Company identifier to index.
+
+        Returns:
+            int: Number of indexed company chunks.
+        """
+
+        started_at = perf_counter()
+        try:
+            companies = list(
+                self.session.execute(
+                    select(Company)
+                    .options(
+                        selectinload(Company.company_sectors).selectinload(CompanySector.sector),
+                        selectinload(Company.problem_mappings).selectinload(ProblemCompanyMapping.problem),
+                    )
+                    .where(Company.id == company_id)
+                ).scalars().all()
+            )
+            indexed_count = self._index_documents(self._build_company_documents(companies))
+        except Exception as exc:  # pragma: no cover - depends on DB/Chroma runtime
+            raise IndexingError("Failed to index selected company from PostgreSQL.") from exc
+
+        self.logger.info(
+            "Indexed %s selected company chunk(s) in %.3f seconds.",
+            indexed_count,
+            perf_counter() - started_at,
+        )
+        return indexed_count
+
     def index_news(self) -> int:
         """Index all news articles from PostgreSQL.
 

@@ -275,15 +275,28 @@ class NewsApiClient:
         *,
         from_date: datetime | None = None,
         page_size: int = 20,
+        language: str = "en",
+        sort_by: str = "publishedAt",
+        search_in: str | None = None,
+        domains: list[str] | None = None,
+        exclude_domains: list[str] | None = None,
     ) -> list[dict[str, Any]]:
         """Fetch articles matching a query from the NewsAPI everything endpoint."""
 
         params: dict[str, Any] = {
             "q": query,
-            "language": "en",
-            "sortBy": "publishedAt",
+            "language": language,
+            "sortBy": sort_by,
             "pageSize": page_size,
         }
+        if search_in:
+            params["searchIn"] = search_in
+        if domains:
+            params["domains"] = ",".join(domain.strip() for domain in domains if domain.strip())
+        if exclude_domains:
+            params["excludeDomains"] = ",".join(
+                domain.strip() for domain in exclude_domains if domain.strip()
+            )
         if from_date is not None:
             params["from"] = from_date.astimezone(timezone.utc).date().isoformat()
         return self._request("everything", params)
