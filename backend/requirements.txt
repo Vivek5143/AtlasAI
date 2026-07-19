@@ -14,6 +14,8 @@ langchain-text-splitters
 pypdf
 unstructured
 tiktoken
+psycopg2-binary
+alembic
 
 python-multipart
 numpy
