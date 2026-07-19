@@ -12,7 +12,7 @@ class Settings(BaseSettings):
 
     GEMINI_API_KEY: str = ""
     GOOGLE_API_KEY: str = ""
-    GOOGLE_MODEL_NAME: str = "gemini-2.5-flash"
+    GOOGLE_MODEL_NAME: str = "gemini-3.5-flash"
     CHROMA_DB_PATH: str = "./chroma_db"
     EMBEDDING_MODEL: str = "BAAI/bge-small-en-v1.5"
     NEWS_API_KEY: str = ""
