@@ -18,7 +18,6 @@ from app.services.problem_service import ProblemService
 from app.services.news_service import NewsService
 from app.services.news_sync_service import NewsSyncService
 from app.services.company_discovery_service import CompanyDiscoveryService
-from app.ai.chat import AtlasAIRAGChatService
 
 
 def get_company_service(db: Session = Depends(get_db)) -> CompanyService:
@@ -65,7 +64,9 @@ def get_company_discovery_service(db: Session = Depends(get_db)) -> CompanyDisco
     )
 
 
-def get_ai_chat_service(db: Session = Depends(get_db)) -> AtlasAIRAGChatService:
+def get_ai_chat_service(db: Session = Depends(get_db)):
     """Provide the AtlasAI RAG chat service backed by the request DB session."""
+
+    from app.ai.chat import AtlasAIRAGChatService
 
     return AtlasAIRAGChatService(session=db)
