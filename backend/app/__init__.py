@@ -1,1 +1,1 @@
-"""InsightForge AI backend application package."""
+"""AtlasAI backend application package."""

@@ -1,1 +1,1 @@
-"""API layer package for the InsightForge AI backend."""
+"""API layer package for the AtklasAI backend."""

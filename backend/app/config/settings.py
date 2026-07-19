@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    APP_NAME: str = "InsightForge AI"
+    APP_NAME: str = "AtlasAI"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
 
