@@ -11,13 +11,17 @@ from app.ai import (
     MissingConfigurationError,
     RetrievalError,
 )
-from app.ai.chat import AtlasAIRAGChatService
+
 from app.api.v1.dependencies import get_ai_chat_service
 from app.schemas.ask import AskAIRequest, AskAIResponse
 
 
-router = APIRouter(prefix="/ask", tags=["AI"])
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from app.ai.chat import AtlasAIRAGChatService
+
+router = APIRouter(prefix="/ask", tags=["AI"])
 
 @router.post("", response_model=AskAIResponse, status_code=status.HTTP_200_OK)
 async def ask_ai(
