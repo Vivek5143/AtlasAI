@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     CHROMA_DB_PATH: str = "./chroma_db"
     EMBEDDING_MODEL: str = "BAAI/bge-small-en-v1.5"
     NEWS_API_KEY: str = ""
+    TAVILY_API_KEY: str = ""
+    INITIAL_ADMIN_EMAIL: str = ""
+    INITIAL_ADMIN_PASSWORD: str = ""
+    INITIAL_ADMIN_USERNAME: str = "admin"
     NEWS_SYNC_LOOKBACK_DAYS: int = 7
     NEWS_SYNC_MAX_COMPANIES_PER_REFRESH: int = 25
     NEWS_SYNC_PAGE_SIZE: int = 10

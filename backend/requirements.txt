@@ -19,3 +19,5 @@ alembic
 
 python-multipart
 numpy
+
+email-validator

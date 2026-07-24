@@ -9,6 +9,9 @@ export type CompanyDiscoveryCandidate = {
   country: string | null;
   description: string | null;
   ai_category: string | null;
+  provider?: string;
+  provider_company_id?: string | null;
+  provider_metadata?: Record<string, any> | null;
   evidence_url: string;
   evidence_title: string | null;
   evidence_text: string | null;

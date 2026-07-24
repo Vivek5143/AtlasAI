@@ -81,6 +81,9 @@ class DiscoveryProviderCandidate:
     country: str | None = None
     description: str | None = None
     ai_category: str | None = None
+    provider: str = "tavily"
+    provider_company_id: str | None = None
+    provider_metadata: dict | None = None
 
 
 @dataclass(slots=True)
@@ -126,6 +129,7 @@ class ProviderDiscoveryStats:
     no_company_name_extracted: int = 0
     blocked_generic_name: int = 0
     unrelated_article: int = 0
+    irrelevant_candidate: int = 0
     provider_duplicate: int = 0
     extraction_details: list[ProviderExtractionDetail] = field(default_factory=list)
 
@@ -138,6 +142,7 @@ class ProviderDiscoveryStats:
             + self.no_company_name_extracted
             + self.blocked_generic_name
             + self.unrelated_article
+            + self.irrelevant_candidate
             + self.provider_duplicate
         )
 
@@ -981,7 +986,11 @@ class CompanyDiscoveryService:
     ) -> None:
         self.session = session
         self.repository = repository or CompanyDiscoveryRepository(session)
-        self.provider = provider or NewsApiCompanyDiscoveryProvider()
+        if provider is None:
+            from app.discovery.tavily_provider import TavilyCompanyDiscoveryProvider
+            self.provider = TavilyCompanyDiscoveryProvider()
+        else:
+            self.provider = provider
         self.company_service = company_service or CompanyService(session)
         self.verification_service = verification_service or CompanyVerificationService(session)
         self.ingestion_service = ingestion_service
@@ -1096,6 +1105,9 @@ class CompanyDiscoveryService:
                 country=provider_candidate.country or country,
                 description=provider_candidate.description,
                 ai_category=provider_candidate.ai_category,
+                provider=provider_candidate.provider,
+                provider_company_id=provider_candidate.provider_company_id,
+                provider_metadata=provider_candidate.provider_metadata,
                 evidence_url=provider_candidate.evidence_url.strip(),
                 evidence_title=provider_candidate.evidence_title,
                 evidence_text=provider_candidate.evidence_text,

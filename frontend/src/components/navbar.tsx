@@ -4,6 +4,7 @@ import { Link, matchPath, useLocation } from "react-router-dom";
 
 import { GlobalSearch } from "@/components/global-search";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useAuth } from "@/contexts/auth-context";
 import type { Theme } from "@/hooks/use-theme";
 
 type RouteMeta = {
@@ -34,9 +35,9 @@ const routeMeta: RouteMeta[] = [
     description: "Investigate market problems and mapped categories",
   },
   {
-    path: "/sectors",
-    title: "Sectors",
-    description: "Review the sectors captured in the AtlasAI dataset",
+    path: "/discovery",
+    title: "Company Discovery",
+    description: "Admin discovery portal for evaluating tavily organization candidates",
   },
   {
     path: "/news",
@@ -77,6 +78,11 @@ export function Navbar({
 }: NavbarProps): ReactElement {
   const location = useLocation();
   const currentRoute = resolveRouteMeta(location.pathname);
+  const { user } = useAuth();
+
+  const initials = user
+    ? user.username.slice(0, 2).toUpperCase()
+    : "AA";
 
   return (
     <header className="sticky top-0 z-20 border-b border-[#dddccf] bg-[#f3efe6]/88 px-4 py-4 backdrop-blur sm:px-6 dark:border-slate-800 dark:bg-slate-950/80">
@@ -110,11 +116,12 @@ export function Navbar({
           <ThemeToggle onToggle={onToggleTheme} theme={theme} />
 
           <Link
-            to="/login"
-            aria-label="Open access page"
+            to={user ? "#" : "/login"}
+            title={user ? `Signed in as ${user.username} (${user.role})` : "Sign In"}
+            aria-label="User account profile"
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#d7ddd1] bg-[#214938] text-sm font-semibold text-[#f6f2e8] shadow-[0_20px_40px_-28px_rgba(28,71,54,0.7)] transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 dark:border-emerald-300/20 dark:bg-emerald-200 dark:text-emerald-950"
           >
-            AA
+            {initials}
           </Link>
         </div>
       </div>

@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from app.api.v1.endpoints.ask import router as ask_router
+from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.companies import router as companies_router
 from app.api.v1.endpoints.dashboard import router as dashboard_router
 from app.api.v1.endpoints.discovery import router as discovery_router
@@ -12,6 +13,7 @@ from app.api.v1.endpoints.sectors import router as sectors_router
 
 
 api_router = APIRouter(prefix="/api/v1")
+api_router.include_router(auth_router)
 api_router.include_router(companies_router)
 api_router.include_router(sectors_router)
 api_router.include_router(problems_router)

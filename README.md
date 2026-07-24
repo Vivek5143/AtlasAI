@@ -115,18 +115,18 @@ News can be refreshed and reindexed through the backend API.
 
 ---
 
-## Company Discovery
+## Company Discovery (Admin Only)
 
-AtlasAI includes a human-in-the-loop Company Discovery system for identifying potential new AI and technology companies that are not already part of the trusted dataset.
+AtlasAI includes an Admin-only, human-in-the-loop Company Discovery system for identifying potential new AI and technology companies via a dedicated discovery provider without using news articles as company records.
 
 The workflow is:
 
 ```text
-External Discovery
+Admin Discovery Search
        ↓
-NewsAPI Evidence
+Tavily Organization Search API
        ↓
-Deterministic Company Extraction
+Normalized Company Records & Metadata
        ↓
 Verification
        ↓
@@ -134,15 +134,15 @@ Duplicate Detection
        ↓
 Confidence Scoring
        ↓
-Pending Human Review
+Pending Admin Review
       ↙             ↘
   Reject           Approve
-                      ↓
-              Trusted PostgreSQL Data
-                      ↓
-           Incremental ChromaDB Indexing
-                      ↓
-                 Available to RAG
+                       ↓
+               Trusted PostgreSQL Data
+                       ↓
+            Incremental ChromaDB Indexing
+                       ↓
+                  Available to RAG
 ```
 
 ### Discovery Safety
@@ -514,6 +514,12 @@ SECRET_KEY=your_secret_key
 GOOGLE_API_KEY=your_google_api_key
 
 NEWS_API_KEY=your_newsapi_key
+
+TAVILY_API_KEY=your_tavily_api_key
+
+INITIAL_ADMIN_EMAIL=admin@yourdomain.com
+INITIAL_ADMIN_PASSWORD=your_secure_admin_password
+INITIAL_ADMIN_USERNAME=admin
 ```
 
 Additional configuration values should be copied from `.env.example` where required.

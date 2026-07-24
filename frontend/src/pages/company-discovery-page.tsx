@@ -9,8 +9,10 @@ import {
   XCircle,
 } from "lucide-react";
 import { useMemo, useState, type FormEvent, type ReactElement } from "react";
+import { Link } from "react-router-dom";
 
 import { PageContainer } from "@/components/page-container";
+import { useAuth } from "@/contexts/auth-context";
 import {
   approveDiscoveryCandidate,
   getPendingDiscoveryCandidates,
@@ -21,6 +23,7 @@ import type {
   CompanyDiscoveryCandidate,
   CompanyDiscoverySearchResponse,
 } from "@/types/discovery";
+import { ShieldAlert } from "lucide-react";
 
 const pendingDiscoveryQueryKey = ["discovery", "pending"] as const;
 
@@ -91,6 +94,9 @@ function CandidateCard({
             <h3 className="text-lg font-semibold text-slate-950 dark:text-white">
               {candidate.company_name}
             </h3>
+            <span className="rounded-full border border-purple-200 bg-purple-50 px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-purple-700 dark:border-purple-900/60 dark:bg-purple-950/30 dark:text-purple-300">
+              Provider: {candidate.provider || "tavily"}
+            </span>
             <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium capitalize text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300">
               {candidate.status}
             </span>
@@ -101,6 +107,11 @@ function CandidateCard({
           <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
             {formatOptional(candidate.description)}
           </p>
+          {candidate.provider_metadata?.industry ? (
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              <strong>Industry:</strong> {candidate.provider_metadata.industry}
+            </p>
+          ) : null}
         </div>
 
         {isPending ? (
@@ -136,74 +147,37 @@ function CandidateCard({
       </div>
 
       <div className="mt-5 grid gap-3 md:grid-cols-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
-            Country
+        <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 dark:border-slate-800/80 dark:bg-slate-950/40">
+          <p className="text-[0.7rem] font-semibold uppercase tracking-wider text-slate-400">
+            Website Domain
           </p>
-          <p className="mt-1 text-sm text-slate-800 dark:text-slate-200">
+          <p className="mt-1 text-sm font-medium text-slate-800 dark:text-slate-200 truncate">
+            {formatOptional(candidate.website_domain || candidate.website)}
+          </p>
+        </div>
+        <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 dark:border-slate-800/80 dark:bg-slate-950/40">
+          <p className="text-[0.7rem] font-semibold uppercase tracking-wider text-slate-400">
+            Country / Region
+          </p>
+          <p className="mt-1 text-sm font-medium text-slate-800 dark:text-slate-200 truncate">
             {formatOptional(candidate.country)}
           </p>
         </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
-            AI Category
+        <div className="rounded-xl border border-slate-100 bg-slate-100/50 p-3 dark:border-slate-800/80 dark:bg-slate-950/40">
+          <p className="text-[0.7rem] font-semibold uppercase tracking-wider text-slate-400">
+            Evidence Link
           </p>
-          <p className="mt-1 text-sm text-slate-800 dark:text-slate-200">
-            {formatOptional(candidate.ai_category)}
-          </p>
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
-            Source Domain
-          </p>
-          <p className="mt-1 text-sm text-slate-800 dark:text-slate-200">
-            {formatOptional(candidate.source_domain)}
-          </p>
-        </div>
-      </div>
-
-      <section className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/45">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
-              Evidence
-            </p>
-            <h4 className="mt-1 text-sm font-semibold leading-6 text-slate-950 dark:text-white">
-              {formatOptional(candidate.evidence_title)}
-            </h4>
-          </div>
           <a
             href={candidate.evidence_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:underline dark:text-blue-400 truncate"
           >
-            <ExternalLink className="h-4 w-4" aria-hidden="true" />
-            View Evidence
+            <span>View Source Profile</span>
+            <ExternalLink className="h-3.5 w-3.5 shrink-0" />
           </a>
         </div>
-        <p className="mt-3 break-all text-xs text-slate-500 dark:text-slate-400">
-          {candidate.evidence_url}
-        </p>
-      </section>
-
-      {candidate.confidence_reasons.length > 0 ? (
-        <div className="mt-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
-            Confidence Reasons
-          </p>
-          <ul className="mt-2 flex flex-wrap gap-2">
-            {candidate.confidence_reasons.map((reason) => (
-              <li
-                key={reason}
-                className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-300"
-              >
-                {reason}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+      </div>
     </article>
   );
 }
@@ -286,6 +260,7 @@ function RejectDialog({
 }
 
 export function CompanyDiscoveryPage(): ReactElement {
+  const { user, isAdmin, isLoading: isAuthLoading } = useAuth();
   const [query, setQuery] = useState("AI startup food technology");
   const [sector, setSector] = useState("Food and Beverage");
   const [country, setCountry] = useState("Germany");
@@ -295,6 +270,38 @@ export function CompanyDiscoveryPage(): ReactElement {
   const [reviewMessage, setReviewMessage] = useState<ReviewMessage | null>(null);
   const [rejectTarget, setRejectTarget] = useState<ReviewTarget | null>(null);
   const [rejectError, setRejectError] = useState<string | null>(null);
+
+  if (!isAuthLoading && !isAdmin) {
+    return (
+      <PageContainer
+        title="Company Discovery"
+        subtitle="Discover, review, and manage companies in the AtlasAI knowledge base."
+      >
+        <div className="mx-auto max-w-2xl rounded-3xl border border-amber-200 bg-amber-50/80 p-8 text-center dark:border-amber-900/50 dark:bg-amber-950/30">
+          <ShieldAlert className="mx-auto h-12 w-12 text-amber-600 dark:text-amber-400" />
+
+          <h2 className="mt-4 font-editorial text-3xl font-semibold text-amber-950 dark:text-amber-100">
+            Admin Access Required
+          </h2>
+
+          <p className="mt-3 text-sm leading-6 text-amber-800 dark:text-amber-200">
+            Company Discovery candidate evaluation, provider searches, and RAG
+            vector store updates are restricted to authorized platform
+            administrators.
+          </p>
+
+          <div className="mt-6 flex justify-center gap-3">
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-2 rounded-full bg-amber-900 px-6 py-2.5 text-sm font-medium text-amber-50 hover:bg-amber-950 dark:bg-amber-200 dark:text-amber-950"
+            >
+              Sign In as Admin
+            </Link>
+          </div>
+        </div>
+      </PageContainer>
+    );
+  }
 
   const pendingQuery = useQuery({
     queryKey: pendingDiscoveryQueryKey,
@@ -612,7 +619,7 @@ export function CompanyDiscoveryPage(): ReactElement {
             setRejectTarget(null);
             setRejectError(null);
           }}
-          onReasonChange={(reason) => setRejectTarget({ ...rejectTarget, reason })}
+          onReasonChange={(reason) => setRejectTarget((prev) => (prev ? { ...prev, reason } : null))}
           onSubmit={handleRejectSubmit}
         />
       ) : null}

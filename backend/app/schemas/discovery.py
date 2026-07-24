@@ -37,6 +37,9 @@ class CompanyDiscoveryCandidateResponse(_SchemaModel):
     country: Optional[str] = None
     description: Optional[str] = None
     ai_category: Optional[str] = None
+    provider: str = "tavily"
+    provider_company_id: Optional[str] = None
+    provider_metadata: Optional[dict] = None
     evidence_url: str
     evidence_title: Optional[str] = None
     evidence_text: Optional[str] = None

@@ -7,9 +7,10 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useState, type ReactElement } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { Logo } from "@/components/logo";
+import { useAuth } from "@/contexts/auth-context";
 
 const highlights = [
   "AI companies and sector intelligence",
@@ -79,6 +80,30 @@ export function LoginPage(): ReactElement {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { login, user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setErrorMsg(null);
+    if (!email || !password) {
+      setErrorMsg("Please enter both email/username and password.");
+      return;
+    }
+    try {
+      setIsSubmitting(true);
+      await login(email, password);
+      navigate("/");
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail || "Sign in failed. Check your credentials.";
+      setErrorMsg(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#f3efe6] px-4 py-5 text-slate-900 dark:bg-slate-950 dark:text-slate-100 sm:px-6 lg:px-8">
@@ -157,83 +182,82 @@ export function LoginPage(): ReactElement {
               Sign in to AtlasAI
             </h2>
             <p className="mt-3 text-sm leading-7 text-slate-500 dark:text-slate-400">
-              Enter your email and password to access your market-intelligence workspace.
+              Enter your email/username and password to access your market-intelligence workspace.
             </p>
 
-            <form
-              className="mt-8 space-y-5"
-              onSubmit={(event) => {
-                event.preventDefault();
-              }}
-            >
-              <div className="space-y-2">
-                <label htmlFor="login-email" className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                  Email
-                </label>
-                <input
-                  id="login-email"
-                  type="email"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="name@company.com"
-                  className="h-12 w-full rounded-2xl border border-[#cfd8d1] bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500"
-                />
+            {errorMsg ? (
+              <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50/80 p-3 text-sm text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
+                {errorMsg}
               </div>
+            ) : null}
 
-              <div className="space-y-2">
-                <label htmlFor="login-password" className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                  Password
-                </label>
-                <div className="relative">
+            {user ? (
+              <div className="mt-6 rounded-[1.5rem] border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300">
+                <p>Signed in as <strong>{user.username}</strong> ({user.role})</p>
+                <Link
+                  to="/"
+                  className="mt-3 inline-flex items-center gap-2 font-medium text-emerald-700 hover:underline dark:text-emerald-200"
+                >
+                  <span>Go to Workspace</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            ) : (
+              <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+                <div className="space-y-2">
+                  <label htmlFor="login-email" className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                    Email / Username
+                  </label>
                   <input
-                    id="login-password"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    placeholder="Enter your password"
-                    className="h-12 w-full rounded-2xl border border-[#cfd8d1] bg-white px-4 pr-12 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500"
+                    id="login-email"
+                    type="text"
+                    autoComplete="username"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="name@company.com"
+                    className="h-12 w-full rounded-2xl border border-[#cfd8d1] bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((current) => !current)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    className="absolute right-2 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl text-slate-500 transition-colors hover:bg-[#edf4ee] hover:text-[#214938] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" aria-hidden="true" />
-                    ) : (
-                      <Eye className="h-4 w-4" aria-hidden="true" />
-                    )}
-                  </button>
                 </div>
-              </div>
 
-              <button
-                type="submit"
-                disabled
-                aria-disabled="true"
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#214938] px-5 text-sm font-medium text-[#f6f2e8] opacity-60"
-              >
-                <span>Sign In</span>
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </button>
-            </form>
+                <div className="space-y-2">
+                  <label htmlFor="login-password" className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="login-password"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      placeholder="Enter your password"
+                      className="h-12 w-full rounded-2xl border border-[#cfd8d1] bg-white px-4 pr-12 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((current) => !current)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      className="absolute right-2 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl text-slate-500 transition-colors hover:bg-[#edf4ee] hover:text-[#214938] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" aria-hidden="true" />
+                      ) : (
+                        <Eye className="h-4 w-4" aria-hidden="true" />
+                      )}
+                    </button>
+                  </div>
+                </div>
 
-            <div className="mt-6 rounded-[1.5rem] border border-[#d7ddd1] bg-[#f4f1e9] p-4 dark:border-slate-800 dark:bg-slate-900/70">
-              <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
-                Authentication endpoints are not configured in this frontend build yet, so no fake
-                sign-in flow has been added.
-              </p>
-              <Link
-                to="/"
-                className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-[#214938] transition-colors hover:text-[#16392d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 dark:text-emerald-200 dark:hover:text-emerald-100"
-              >
-                <span>Open the existing AtlasAI workspace</span>
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </Link>
-            </div>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#214938] px-5 text-sm font-medium text-[#f6f2e8] transition-opacity hover:opacity-90 disabled:opacity-50"
+                >
+                  <span>{isSubmitting ? "Signing in..." : "Sign In"}</span>
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </form>
+            )}
           </div>
         </aside>
       </div>

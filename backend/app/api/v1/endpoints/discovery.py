@@ -1,4 +1,4 @@
-"""Company discovery endpoints for human-reviewed candidate approval."""
+"""Company discovery endpoints protected by admin authorization."""
 
 from __future__ import annotations
 
@@ -6,7 +6,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.api.v1.dependencies import get_company_discovery_service
+from app.api.v1.dependencies import get_company_discovery_service, get_current_admin_user
+from app.models.user import User
 from app.schemas.discovery import (
     CompanyDiscoveryApprovalResponse,
     CompanyDiscoveryCandidateResponse,
@@ -25,15 +26,20 @@ from app.services.company_discovery_service import (
     DuplicateCompanyError,
 )
 
-router = APIRouter(prefix="/discovery", tags=["Discovery"])
+router = APIRouter(
+    prefix="/discovery",
+    tags=["Discovery"],
+    dependencies=[Depends(get_current_admin_user)],
+)
 
 
 @router.post("/search", response_model=CompanyDiscoverySummary)
 async def search_discovery_candidates(
     request: CompanyDiscoveryRequest,
     discovery_service=Depends(get_company_discovery_service),
+    current_admin: User = Depends(get_current_admin_user),
 ) -> CompanyDiscoverySummary:
-    """Trigger external company discovery and create pending candidates."""
+    """Trigger external company discovery and create pending candidates (Admin only)."""
 
     try:
         summary = discovery_service.discover_candidates(
@@ -80,8 +86,9 @@ async def search_discovery_candidates(
 async def list_pending_discovery_candidates(
     limit: int = 50,
     discovery_service=Depends(get_company_discovery_service),
+    current_admin: User = Depends(get_current_admin_user),
 ) -> CompanyDiscoveryListResponse:
-    """List pending candidates awaiting human review."""
+    """List pending candidates awaiting human review (Admin only)."""
 
     candidates = discovery_service.list_pending(limit=limit)
     return CompanyDiscoveryListResponse(items=candidates, total=len(candidates))
@@ -91,8 +98,9 @@ async def list_pending_discovery_candidates(
 async def get_discovery_candidate(
     candidate_id: UUID,
     discovery_service=Depends(get_company_discovery_service),
+    current_admin: User = Depends(get_current_admin_user),
 ) -> CompanyDiscoveryCandidateResponse:
-    """Fetch a discovery candidate and its evidence."""
+    """Fetch a discovery candidate and its evidence (Admin only)."""
 
     candidate = discovery_service.get_candidate(candidate_id)
     if candidate is None:
@@ -104,8 +112,9 @@ async def get_discovery_candidate(
 async def approve_discovery_candidate(
     candidate_id: UUID,
     discovery_service=Depends(get_company_discovery_service),
+    current_admin: User = Depends(get_current_admin_user),
 ) -> CompanyDiscoveryApprovalResponse:
-    """Approve a pending candidate and add it to trusted company data."""
+    """Approve a pending candidate and add it to trusted company data (Admin only)."""
 
     try:
         company, indexing_status, indexed_chunks = discovery_service.approve_candidate(candidate_id)
@@ -128,8 +137,9 @@ async def reject_discovery_candidate(
     candidate_id: UUID,
     request: CompanyDiscoveryRejectionRequest | None = None,
     discovery_service=Depends(get_company_discovery_service),
+    current_admin: User = Depends(get_current_admin_user),
 ) -> CompanyDiscoveryCandidateResponse:
-    """Reject a pending candidate without adding it to trusted data."""
+    """Reject a pending candidate without adding it to trusted data (Admin only)."""
 
     try:
         return discovery_service.reject_candidate(

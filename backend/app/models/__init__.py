@@ -1,4 +1,5 @@
 """Domain model package exports and mapper registration."""
+from .user import User
 from .company import Company
 from .company_discovery_candidate import CompanyDiscoveryCandidate, CompanyDiscoveryStatus
 from .sector import Sector
@@ -8,6 +9,7 @@ from .problem_company_mapping import ProblemCompanyMapping
 from .news_article import NewsArticle
 
 __all__ = [
+	"User",
 	"Company",
 	"CompanyDiscoveryCandidate",
 	"CompanyDiscoveryStatus",

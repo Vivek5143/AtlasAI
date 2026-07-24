@@ -7,10 +7,14 @@ import { queryClient } from "@/lib/query-client";
 import "@/index.css";
 import "@/styles/globals.css";
 
+import { AuthProvider } from "@/contexts/auth-context";
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </QueryClientProvider>
   </React.StrictMode>,
 );
